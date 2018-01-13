@@ -1,0 +1,15 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Atlas
+Bundle-SymbolicName: io.mapzone.atlas;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Vendor: mapzone.io
+Bundle-RequiredExecutionEnvironment: JavaSE-1.8
+Require-Bundle: org.polymap.core;bundle-version="4.0.1",
+ org.polymap.core.data;bundle-version="4.0.1",
+ org.polymap.core.project;bundle-version="4.0.0",
+ org.polymap.rhei.fulltext;bundle-version="4.0.0",
+ org.polymap.rhei.batik;bundle-version="4.0.0",
+ org.polymap.cms;bundle-version="1.1.0",
+ org.polymap.p4;bundle-version="1.0.2"
+Bundle-Activator: io.mapzone.atlas.AtlasPlugin
