@@ -1,4 +1,4 @@
-# mapzone.io Atlas Plugin
+# Atlas-Plugin für [mapzone.io](http://mapzone.io)
 
 Mobile Geräte
 -------------
@@ -24,10 +24,6 @@ Nicht mehr separat, sondern direkt oberhalb der Ergebnisliste, rechts im Panel. 
 
 Sind mehrere Ergebnislisten sinnvoll? Hat sich das bewährt? Die jetzigen Suchvorschläge benutzen diese Möglichkeit nicht mehr.
 
-Bookmark, Link, Messen, Treffpunkt
-----------------------------------
-Die knöpfe bleiben an derselben Stellen. Zur Bedienung wird konsequent ein einblendendes Panel rechts verwendet.
-
 "Datenblätter"
 --------------
 Spezifische Darstellung von bestimmten Daten (z.B. Bildungsangebote). Erfolgt ebenfalls über das CMS. Inhalte sind Markdown/HTML. Das ist ist viel einfacher zu pflegen als JavaScript (jetzige Lösung) und kann dadurch von mehr Leuten bedient werden.
@@ -35,3 +31,8 @@ Spezifische Darstellung von bestimmten Daten (z.B. Bildungsangebote). Erfolgt eb
 Daten einpflegen
 ----------------
 Import, Pflege, Konfiguration der Daten erfolgt in der neuen Polymap4 Oberfläche (siehe http://mapzone.io). Das Atlas-Projekt enthält nur noch Daten, die für den Atlas auch relevant sind. Das macht die Bedienung einfacher und den Überblick größer als bisher. Alles kommt in den Volltext-Index. 
+
+Bookmark, Link, Messen, Treffpunkt
+----------------------------------
+Die Knöpfe bleiben an derselben Stellen. Zur Bedienung wird konsequent ein einblendendes Panel rechts verwendet.
+
