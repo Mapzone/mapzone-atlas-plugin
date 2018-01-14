@@ -16,6 +16,7 @@ package io.mapzone.atlas.ui;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -27,6 +28,8 @@ import org.polymap.core.data.pipeline.ProcessorDescription;
 import org.polymap.core.project.ILayer;
 
 import org.polymap.p4.map.ProjectLayerProvider;
+
+import io.mapzone.atlas.AtlasFeatureLayer;
 
 /**
  * Builds layers of {@link AtlasMapPanel#mapViewer}.
@@ -40,21 +43,24 @@ public class AtlasMapLayerProvider
 
     @Override
     protected Pipeline createPipeline( String layerName ) {
-        Pipeline pipeline = super.createPipeline( layerName );
-        
-        // add filter processor
         try {
-            FeatureRenderProcessor2 renderProc = (FeatureRenderProcessor2)pipeline.getLast().processor();
-            Pipeline featurePipeline = renderProc.pipeline();
-            
             ILayer layer = layers.get( layerName );
-            Map<String,Object> props = Collections.singletonMap( "layer", layer );
-            ProcessorDescription filterProc = new ProcessorDescription( FilterFeatureProcessor.class, props );
-            filterProc.processor().init( new PipelineProcessorSite( props ) );
+            Pipeline pipeline = super.createPipeline( layerName );
 
-            featurePipeline.add( featurePipeline.length()-1, filterProc );
-            log.info( "Pipeline: " + featurePipeline );
-            
+            // is it a AtlasFeatureLayer?
+            Optional<AtlasFeatureLayer> afl = AtlasFeatureLayer.of( layer ).get();
+            if (afl.isPresent()) {
+                // -> add filter processor
+                FeatureRenderProcessor2 renderProc = (FeatureRenderProcessor2)pipeline.getLast().processor();
+                Pipeline featurePipeline = renderProc.pipeline();
+
+                Map<String,Object> props = Collections.singletonMap( "layer", layer );
+                ProcessorDescription filterProc = new ProcessorDescription( FilterFeatureProcessor.class, props );
+                filterProc.processor().init( new PipelineProcessorSite( props ) );
+
+                featurePipeline.add( featurePipeline.length()-1, filterProc );
+                log.info( "Pipeline: " + featurePipeline );
+            }
             return pipeline;
         }
         catch (Exception e) {

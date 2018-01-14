@@ -16,11 +16,9 @@ package io.mapzone.atlas.ui;
 
 import static org.polymap.core.runtime.event.TypeEventFilter.*;
 
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -57,7 +55,7 @@ public class AtlasMapContentProvider
     private MapViewer           viewer;
     
     /** Last result of {@link #getElements(Object)}. */
-    private List<ILayer>        elements = Collections.EMPTY_LIST;
+    private List<ILayer>        elements = new ArrayList();
 
 
     @Override
@@ -97,23 +95,33 @@ public class AtlasMapContentProvider
 
     @Override
     public Object[] getElements( Object inputElement ) {
-        elements = map.layers.stream()
-                .filter( l -> { 
-                    try { 
-                        Optional<AtlasFeatureLayer> afl = AtlasFeatureLayer.of( l ).get();
-                        return afl.isPresent() ? afl.get().visible.get() : false; 
+        elements.clear();
+        for (ILayer layer : map.layers) {
+            try {
+                // wait for (check) feature layer
+                Optional<AtlasFeatureLayer> featureLayer = AtlasFeatureLayer.of( layer ).get();
+                if (featureLayer.isPresent()) {
+                    if (featureLayer.get().visible.get()) {
+                        elements.add( layer );
                     }
-                    catch (Exception e) { 
-                        log.warn( "", e ); return false; 
+                }
+                // background layer
+                else {
+                    if (layer.userSettings.get().visible.get()) {
+                        elements.add( layer );                        
                     }
-                })
-                .collect( Collectors.toList() );
+                };
+            }
+            catch (Exception e) { 
+                log.warn( "", e ); 
+            }
+        }
         return elements.toArray();
     }
 
 
     @EventHandler( display=true, delay=750 )
-    protected void onPropertyChange( List<PropertyChangeEvent> evs ) {
+    protected void onAtlasPropertyChange( List<PropertyChangeEvent> evs ) {
         for (PropertyChangeEvent ev : evs) {
             Config prop = ev.prop.get();
             if (prop.equals( AtlasFeatureLayer.TYPE.visible )) {
