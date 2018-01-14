@@ -14,7 +14,7 @@
  */
 package io.mapzone.atlas.ui;
 
-import static org.polymap.core.runtime.event.TypeEventFilter.ifType;
+import static org.polymap.core.runtime.event.TypeEventFilter.*;
 
 import java.util.Collections;
 import java.util.List;
@@ -40,7 +40,7 @@ import io.mapzone.atlas.LayerQueryBuilder;
 import io.mapzone.atlas.PropertyChangeEvent;
 
 /**
- * Provides the content of an {@link IMap}.
+ * Provides the content of {@link AtlasMapPanel#mapViewer}.
  * <p/>
  * This also tracks the state of the layers and triggers {@link MapViewer#refresh()}
  * on {@link ProjectNodeCommittedEvent} and {@link PropertyChangeEvent}. 
@@ -70,7 +70,7 @@ public class AtlasMapContentProvider
         this.viewer = (MapViewer)viewer;
         
         // listen to AtlasFeatureLayer#visible
-        EventManager.instance().subscribe( this, ifType( PropertyChangeEvent.class, ev -> {
+        EventManager.instance().subscribe( this, isType( PropertyChangeEvent.class, ev -> {
             Config prop = ev.prop.get();
             return prop.equals( AtlasFeatureLayer.TYPE.visible )
                     || prop.equals( LayerQueryBuilder.TYPE.queryText );

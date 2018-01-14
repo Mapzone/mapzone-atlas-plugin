@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2017, the @authors. All rights reserved.
+ * Copyright (C) 2017-2018, the @authors. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -40,7 +40,7 @@ import org.polymap.core.project.ILayer;
 import io.mapzone.atlas.AtlasFeatureLayer;
 
 /**
- * 
+ * Add {@link AtlasFeatureLayer#fulltextFilter()} the the layer filer.
  *
  * @author Falko Bräutigam
  */

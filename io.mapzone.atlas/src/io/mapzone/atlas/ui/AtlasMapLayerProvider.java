@@ -29,7 +29,7 @@ import org.polymap.core.project.ILayer;
 import org.polymap.p4.map.ProjectLayerProvider;
 
 /**
- * 
+ * Builds layers of {@link AtlasMapPanel#mapViewer}.
  *
  * @author Falko Bräutigam
  */

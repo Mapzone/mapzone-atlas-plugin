@@ -91,6 +91,7 @@ public class AtlasLayersPanel
         if (parentPanel().isPresent() && parentPanel().get() instanceof AtlasMapPanel) {
             site().title.set( "" );
             site().icon.set( P4Plugin.images().svgImage( "layers.svg", P4Plugin.HEADER_ICON_CONFIG ) );
+            site().tooltip.set( "Ebenen im Hintergrund einblenden" );
             return true;            
         }
         return false;
@@ -99,7 +100,7 @@ public class AtlasLayersPanel
 
     @Override
     public void createContents( Composite parent ) {
-        site().title.set( i18n.get( "title" ) );
+        site().title.set( "Hintergrund" );
         parent.setLayout( FormLayoutFactory.defaults().margins( 3, 3, 17, 3 ).spacing( 8 ).create() );
 
         // viewer
@@ -113,8 +114,7 @@ public class AtlasLayersPanel
         viewer.firstSecondaryActionProvider.set( new LayerVisibleAction());
         
         viewer.addOpenListener( new IOpenListener() {
-            @Override
-            public void open( OpenEvent ev ) {
+            @Override public void open( OpenEvent ev ) {
                 SelectionAdapter.on( ev.getSelection() ).forEach( elm -> {
                     selected.set( (ILayer)elm );
                 });

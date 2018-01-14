@@ -77,7 +77,7 @@ public class PropertyChangeEvent
             ev.newValue.set( newValue );
             log.info( "Publishing: " + prop.info().getName() + " => " + newValue );
             EventManager.instance().publish( ev );
-            log.info( "Publised: " + prop.info().getName() + " => " + newValue );
+            log.info( "Published: " + prop.info().getName() + " => " + newValue );
             
             return newValue;
         }
