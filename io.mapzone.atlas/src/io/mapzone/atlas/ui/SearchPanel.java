@@ -22,6 +22,8 @@ import org.opengis.feature.Property;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.google.common.base.Joiner;
+
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
 
@@ -46,8 +48,6 @@ import org.polymap.rhei.batik.toolkit.ClearTextAction;
 import org.polymap.rhei.batik.toolkit.TextActionItem;
 import org.polymap.rhei.batik.toolkit.TextActionItem.Type;
 import org.polymap.rhei.batik.toolkit.md.MdListViewer;
-import org.polymap.rhei.batik.toolkit.md.TreeExpandStateDecorator;
-
 import org.polymap.p4.P4Panel;
 
 import io.mapzone.atlas.AtlasFeatureLayer;
@@ -81,7 +81,7 @@ public class SearchPanel
     public boolean beforeInit() {
         if (parentPanel().isPresent() && parentPanel().get() instanceof AtlasMapPanel) {
             site().title.set( "" );
-            site().tooltip.set( "Einträge suchen" );
+            site().tooltip.set( "Orte und Informationen suchen" );
             site().icon.set( AtlasPlugin.images().svgImage( "magnify.svg", AtlasPlugin.HEADER_ICON_CONFIG ) );
             return true;            
         }
@@ -98,7 +98,7 @@ public class SearchPanel
     @Override
     public void createContents( Composite parent ) {
         site().title.set( "Suchen" );
-        parent.setLayout( FormLayoutFactory.defaults().margins( 0, 12 ).spacing( 6 ).create() );
+        parent.setLayout( FormLayoutFactory.defaults().margins( 0, 10 ).spacing( 6 ).create() );
         
         // searchText
         searchText = tk().createActionText( parent, "" );
@@ -108,15 +108,19 @@ public class SearchPanel
                 .tooltip.put( "Fulltext search. Use * as wildcard.<br/>&lt;ENTER&gt; starts the search." )
                 .icon.put( AtlasPlugin.images().svgImage( "magnify.svg", SvgImageRegistryHelper.DISABLED12 ) );
         new ClearTextAction( searchText );
+        //searchText.getText().forceFocus();
 
         // viewer
         viewer = tk().createListViewer( parent, SWT.VIRTUAL, SWT.SINGLE, SWT.FULL_SELECTION );
         viewer.setContentProvider( 
                 contentProvider = new SearchContentProvider() );
         viewer.firstLineLabelProvider.set( 
-                new TreeExpandStateDecorator( viewer, 
-                new SearchLabelProvider() ) );
-        viewer.iconProvider.set( new LayersIconProvider() );
+                //new TreeExpandStateDecorator( viewer, 
+                new SearchLabelProvider() );
+        viewer.secondLineLabelProvider.set( 
+                new SearchDescriptionProvider() );
+        viewer.iconProvider.set( 
+                new LayersIconProvider() );
         viewer.addOpenListener( ev -> 
                 SelectionAdapter.on( ev.getSelection() ).first( ILayer.class ).ifPresent( l -> doToggleLayer( l ) ) );
         viewer.setInput( map.get() );
@@ -153,9 +157,9 @@ public class SearchPanel
     
     
     /**
-     * 
+     * Labels for {@link SearchPanel#viewer}. 
      */
-    public class SearchLabelProvider
+    protected class SearchLabelProvider
             extends CellLabelProvider {
 
         @Override
@@ -224,7 +228,35 @@ public class SearchPanel
 
     
     /**
-     * 
+     * Descriptions for {@link SearchPanel#viewer}. 
+     */
+    protected class SearchDescriptionProvider
+            extends CellLabelProvider {
+
+        @Override
+        public void update( ViewerCell cell ) {
+            Object elm = cell.getElement();
+            if (elm == SearchContentProvider.LOADING) {
+                cell.setText( "..." );
+            }
+            // ILayer
+            else if (elm instanceof ILayer) {
+                ILayer layer = (ILayer)elm;
+                cell.setText( Joiner.on( ", " ).join( layer.keywords ) );
+            }
+            // Feature
+            else if (elm instanceof Feature) {
+                cell.setText( "Südstr. 6, 04425 Taucha" );
+            }
+            else {
+                throw new IllegalStateException( "Unknown element type: " + elm );
+            }
+        }
+    }
+
+    
+    /**
+     * Icons for {@link SearchPanel#viewer}.
      */
     protected final class LayersIconProvider
             extends CellLabelProvider {
@@ -234,6 +266,9 @@ public class SearchPanel
             Object elm = cell.getElement();
             if (elm instanceof ILayer) {
                 cell.setImage( AtlasPlugin.images().svgImage( "map-marker-multiple.svg", SvgImageRegistryHelper.NORMAL24 ) );
+            }
+            else /*if (elm instanceof Feature)*/ {
+                cell.setImage( AtlasPlugin.images().svgImage( "map-marker.svg", SvgImageRegistryHelper.NORMAL12 ) );
             }
         }
     }

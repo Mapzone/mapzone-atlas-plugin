@@ -35,7 +35,7 @@ import io.mapzone.atlas.index.AtlasIndex;
 public class AtlasPlugin
         extends AbstractUIPlugin {
 
-    private static Log log = LogFactory.getLog( AtlasPlugin.class );
+    private static final Log log = LogFactory.getLog( AtlasPlugin.class );
 
     public static final String      ID = "io.mapzone.atlas";
 
@@ -72,7 +72,8 @@ public class AtlasPlugin
         AtlasIndex atlasIndex = AtlasIndex.instance();
         log.info( "Index size: " + byteCountToDisplaySize( atlasIndex.sizeInByte() ) );
         if (atlasIndex.index().isEmpty()) {
-            atlasIndex.update();
+            log.warn( "Index update commented out!" );
+            //atlasIndex.update();
         }
         
 //        // JAAS config: no dialog; let LoginPanel create UI

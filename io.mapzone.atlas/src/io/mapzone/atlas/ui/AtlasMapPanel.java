@@ -151,7 +151,7 @@ public class AtlasMapPanel
     @Override
     public void createContents( Composite parent ) {
         // title and layout
-        site().title.set( "Atlas" );
+        site().title.set( "Vorpommern-Greifswald" );
         site().setSize( SIDE_PANEL_WIDTH/2, Integer.MAX_VALUE, Integer.MAX_VALUE );
         
         //parent.setBackground( UIUtils.getColor( 0xff, 0xff, 0xff ) );
