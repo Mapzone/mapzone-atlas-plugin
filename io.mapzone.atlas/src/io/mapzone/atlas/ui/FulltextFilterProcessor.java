@@ -24,6 +24,7 @@ import org.apache.commons.logging.LogFactory;
 
 import org.polymap.core.data.DataPlugin;
 import org.polymap.core.data.feature.DefaultFeaturesProcessor;
+import org.polymap.core.data.feature.FeaturesProducer;
 import org.polymap.core.data.feature.GetBoundsRequest;
 import org.polymap.core.data.feature.GetFeatureTypeResponse;
 import org.polymap.core.data.feature.GetFeaturesRequest;
@@ -85,12 +86,13 @@ public class FulltextFilterProcessor
         @Override
         public void additionals( PipelineBuilder Builder, List<ProcessorDescriptor> chain ) {
             try {
-                if (dsd.service.get() instanceof DataAccess) {
+                if (dsd.service.get() instanceof DataAccess 
+                        && FeaturesProducer.class.isAssignableFrom( usecase )) {
 //                    ILayer layer = ProjectRepository.unitOfWork().entity( ILayer.class, layerId );
 //                    
 //                    Optional<AtlasFeatureLayer> afl = AtlasFeatureLayer.of( layer ).get();
 //                    if (afl.isPresent()) {
-                        chain.add( new ProcessorDescriptor( FulltextFilterProcessor.class, null ) );
+                        chain.add( 0, new ProcessorDescriptor( FulltextFilterProcessor.class, null ) );
 //                    }
                 }
             }
