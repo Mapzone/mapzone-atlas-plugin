@@ -128,7 +128,7 @@ public class AtlasMapContentProvider
                 viewer.refresh();
             }
             else if (prop.equals( LayerQueryBuilder.TYPE.queryText )) {
-                elements.stream().forEach( l -> viewer.refresh( l ) );
+                elements.stream().forEach( l -> viewer.refresh( l, true ) );
             }
             else {
                 throw new RuntimeException( "Unhandled event property type: " + prop );

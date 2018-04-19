@@ -10,6 +10,7 @@ Require-Bundle: org.polymap.core;bundle-version="4.0.1",
  org.polymap.core.project;bundle-version="4.0.0",
  org.polymap.rhei.fulltext;bundle-version="4.0.0",
  org.polymap.rhei.batik;bundle-version="4.0.0",
- org.polymap.cms;bundle-version="1.1.0",
- org.polymap.p4;bundle-version="1.0.2"
+ org.polymap.p4;bundle-version="1.0.2",
+ org.polymap.cms;bundle-version="1.1.0"
 Bundle-Activator: io.mapzone.atlas.AtlasPlugin
+Bundle-ActivationPolicy: lazy

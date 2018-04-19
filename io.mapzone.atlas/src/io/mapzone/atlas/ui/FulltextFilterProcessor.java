@@ -14,6 +14,8 @@
  */
 package io.mapzone.atlas.ui;
 
+import java.util.List;
+import org.geotools.data.DataAccess;
 import org.geotools.data.Query;
 import org.opengis.filter.Filter;
 
@@ -30,31 +32,84 @@ import org.polymap.core.data.feature.GetFeaturesSizeRequest;
 import org.polymap.core.data.feature.ModifyFeaturesResponse;
 import org.polymap.core.data.feature.TransactionResponse;
 import org.polymap.core.data.pipeline.Consumes;
+import org.polymap.core.data.pipeline.DataSourceDescriptor;
 import org.polymap.core.data.pipeline.EndOfProcessing;
+import org.polymap.core.data.pipeline.Param;
+import org.polymap.core.data.pipeline.PipelineBuilder;
+import org.polymap.core.data.pipeline.PipelineBuilderConcernAdapter;
 import org.polymap.core.data.pipeline.PipelineExecutor.ProcessorContext;
+import org.polymap.core.data.pipeline.PipelineProcessor;
 import org.polymap.core.data.pipeline.PipelineProcessorSite;
+import org.polymap.core.data.pipeline.ProcessorDescriptor;
 import org.polymap.core.data.pipeline.ProcessorResponse;
 import org.polymap.core.data.pipeline.Produces;
 import org.polymap.core.project.ILayer;
 
+import org.polymap.p4.project.ProjectRepository;
+
 import io.mapzone.atlas.AtlasFeatureLayer;
 
 /**
- * Add {@link AtlasFeatureLayer#fulltextFilter()} the the layer filer.
+ * Add {@link AtlasFeatureLayer#fulltextFilter()} to the layer filter.
  *
  * @author Falko Bräutigam
  */
-public class FilterFeatureProcessor
+public class FulltextFilterProcessor
         extends DefaultFeaturesProcessor {
 
-    private static final Log log = LogFactory.getLog( FilterFeatureProcessor.class );
+    private static final Log log = LogFactory.getLog( FulltextFilterProcessor.class );
 
+    public static final Param<ILayer>       PARAM_LAYER = new Param( "layer", ILayer.class );
+    
+    /**
+     * 
+     */
+    public static class FulltextFilterPipelineBuilderConcern
+            extends PipelineBuilderConcernAdapter {
+
+        private DataSourceDescriptor                dsd;
+
+        private Class<? extends PipelineProcessor>  usecase;
+
+        private String                              layerId;
+
+        @Override
+        @SuppressWarnings("hiding")
+        public void startBuild( PipelineBuilder builder, String layerId, DataSourceDescriptor dsd,
+                Class<? extends PipelineProcessor> usecase, ProcessorDescriptor start ) {
+            this.dsd = dsd;
+            this.usecase = usecase;
+            this.layerId = layerId;
+        }
+
+        @Override
+        public void additionals( PipelineBuilder Builder, List<ProcessorDescriptor> chain ) {
+            try {
+                if (dsd.service.get() instanceof DataAccess) {
+//                    ILayer layer = ProjectRepository.unitOfWork().entity( ILayer.class, layerId );
+//                    
+//                    Optional<AtlasFeatureLayer> afl = AtlasFeatureLayer.of( layer ).get();
+//                    if (afl.isPresent()) {
+                        chain.add( new ProcessorDescriptor( FulltextFilterProcessor.class, null ) );
+//                    }
+                }
+            }
+            catch (Exception e) {
+                throw new RuntimeException( e );
+            }
+        }
+    }
+    
+    
+    // instance *******************************************
+    
     private ILayer          layer;
 
 
     @Override
     public void init( PipelineProcessorSite site ) throws Exception {
-        layer = site.getProperty( "layer" );
+        layer = ProjectRepository.unitOfWork().entity( ILayer.class, site.layerId.get() );
+//        layer = (ILayer)site.params().get( "layer" );
     }
 
     

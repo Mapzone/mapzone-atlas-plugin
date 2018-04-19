@@ -4,7 +4,7 @@
    <extension
          point="org.eclipse.rap.ui.entrypoint">
       <entrypoint
-            brandingId="org.polymap.rhei.batik.branding"
+            brandingId="io.mapzone.atlas.branding"
             class="org.polymap.rhei.batik.BatikApplication"
             id="io.mapzone.atlas.entrypoint"
             path="/atlas">
@@ -17,6 +17,24 @@
             id="io.mapzone.atlas.design"
             servletNameMatcher="/atlas">
       </design>
+   </extension>
+   <extension
+         point="org.eclipse.rap.ui.branding">
+      <branding
+            id="io.mapzone.atlas.branding"
+            themeId="org.polymap.rhei.batik.materialDesign"
+            title="Atlas">
+         <additionalHeaders>
+            <link
+                  href="batikres/css/md/flowtext.css"
+                  rel="stylesheet">
+            </link>
+            <link
+                  href="batikres/css/roboto.css"
+                  rel="stylesheet">
+            </link>
+         </additionalHeaders>
+      </branding>
    </extension>
    <extension
          point="org.polymap.rhei.batik.panels">
@@ -41,6 +59,18 @@
             class="io.mapzone.atlas.ui.AtlasPanelFilter"
             servletNameMatcher="/atlas">
       </panelFilter>
+      <panelFilter
+            class="io.mapzone.atlas.ui.ArenaPanelFilter"
+            servletNameMatcher="/arena">
+      </panelFilter>
+   </extension>
+   <extension
+         point="org.polymap.core.data.pipeline.builderConcerns">
+      <listener
+            class="io.mapzone.atlas.ui.FulltextFilterProcessor$FulltextFilterPipelineBuilderConcern"
+            id="io.mapzone.atlas.FulltextFilterProcessor"
+            name="FulltextFilterProcessor">
+      </listener>
    </extension>
 
 </plugin>
