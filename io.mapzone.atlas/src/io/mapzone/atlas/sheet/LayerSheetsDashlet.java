@@ -186,7 +186,15 @@ public class LayerSheetsDashlet
         public MarkdownScriptSheetText( Composite parent, LayerSheet sheet, int... styles ) throws IOException {
             this.sheet = MarkdownScriptSheet.of( layer.get(), sheet );
 
-            text = site().toolkit().createText( parent, this.sheet.text(), ArrayUtils.add( styles, SWT.BORDER ) );
+            String content = this.sheet.text().orElseGet( () -> {
+                switch (sheet) {
+                    case TITLE: return "$layer_name";
+                    case DESCRIPTION: return "${layer_keywords.join(', ')}";
+                    case DETAIL: return "$layer_description";
+                    default: throw new RuntimeException( "Unhandled sheet type: " + sheet );
+                }
+            });
+            text = site().toolkit().createText( parent, content, ArrayUtils.add( styles, SWT.BORDER ) );
             text.addModifyListener( ev -> {
                 isDirty = true;
                 checkSyntax();
@@ -221,6 +229,11 @@ public class LayerSheetsDashlet
             syntaxChecker = new UIJob( "Syntax check" ) {
                 @Override protected void runWithException( IProgressMonitor monitor ) throws Exception {
                     try {
+                        sheet.setVariable( "layer", layer.get() );
+                        sheet.setVariable( "layer_name", layer.get().label.get() );
+                        sheet.setVariable( "layer_title", layer.get().label.get() );
+                        sheet.setVariable( "layer_description", layer.get().description.get() );
+                        sheet.setVariable( "layer_keywords", layer.get().keywords );
                         for (Property p : feature.waitAndGet().getProperties()) {
                             sheet.setVariable( p.getName().getLocalPart(), p.getValue() );
                         }

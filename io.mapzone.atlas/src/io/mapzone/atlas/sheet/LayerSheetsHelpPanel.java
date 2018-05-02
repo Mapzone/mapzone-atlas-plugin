@@ -27,6 +27,7 @@ import org.opengis.feature.type.PropertyDescriptor;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.google.common.base.Throwables;
 import com.vividsolutions.jts.geom.Geometry;
 
 import org.eclipse.swt.SWT;
@@ -215,7 +216,7 @@ public class LayerSheetsHelpPanel
                 update( sheetText, LayerSheet.DETAIL );
             }
             catch (Exception e) {
-                log.warn( "", e );
+                StatusDispatcher.handleError( Throwables.getRootCause( e ).getMessage(), e );
             }
         }
         
@@ -224,6 +225,11 @@ public class LayerSheetsHelpPanel
                 l.setBackground( new HSLColor( l.getParent().getBackground() ).adjustShade( 4 ).toSWT() );
                 
                 MarkdownScriptSheet sheet = MarkdownScriptSheet.of( layer.get(), _sheet );
+                sheet.setVariable( "layer", layer.get() );
+                sheet.setVariable( "layer_name", layer.get().label.get() );
+                sheet.setVariable( "layer_title", layer.get().label.get() );
+                sheet.setVariable( "layer_description", layer.get().description.get() );
+                sheet.setVariable( "layer_keywords", layer.get().keywords );
                 for (Property p : feature.waitAndGet().getProperties()) {
                     sheet.setVariable( p.getName().getLocalPart(), p.getValue() );
                 }
@@ -276,6 +282,8 @@ public class LayerSheetsHelpPanel
     protected class FeatureTypeDashlet
             extends DefaultDashlet {
 
+        private int         fieldCount;
+
         @Override
         public void init( DashletSite site ) {
             super.init( site );
@@ -290,21 +298,33 @@ public class LayerSheetsHelpPanel
                 PipelineFeatureSource fs = FeatureLayer.of( layer.get() ).get().get().featureSource();
                 SimpleFeatureType schema = fs.getSchema();
                 
+                createField( parent, "layer_name", "String" );
+                createField( parent, "layer_description", "String" );
+                createField( parent, "layer_keywords", "Collection" );
+                
                 for (PropertyDescriptor prop : schema.getDescriptors()) {
-                    Composite container = tk().createComposite( parent );
-                    container.setLayout( FormLayoutFactory.defaults().create() );
-                    Label name = tk().createLabel( container, prop.getName().getLocalPart() );
-                    name.setFont( UIUtils.bold( name.getFont() ) );
-                    
-                    Label type = tk().createLabel( container, prop.getType().getBinding().getSimpleName() );
-
-                    FormDataFactory.on( name ).fill().noRight().width( 90 );
-                    FormDataFactory.on( type ).fill().left( name );
+                    createField( parent, prop.getName().getLocalPart(), prop.getType().getBinding().getSimpleName() );
                 }
             }
             catch (Exception e) {
                 log.warn( "", e );
             }
+        }
+
+        protected void createField( Composite parent, String _name, String _type ) {
+            Composite container = tk().createComposite( parent );
+            if (fieldCount++ % 2 == 0) {
+                container.setBackground( new HSLColor( container.getParent().getBackground() ).adjustShade( 4 ).toSWT() );
+            }
+
+            container.setLayout( FormLayoutFactory.defaults().create() );
+            Label name = tk().createLabel( container, _name );
+            name.setFont( UIUtils.bold( name.getFont() ) );
+            
+            Label type = tk().createLabel( container, _type );
+
+            FormDataFactory.on( name ).fill().noRight().width( 110 );
+            FormDataFactory.on( type ).fill().left( name );
         }
     }
     

@@ -16,6 +16,7 @@ package io.mapzone.atlas.sheet;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -29,6 +30,7 @@ import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -95,8 +97,8 @@ public class MarkdownScriptSheet {
     /** 
      * The markdown/script source of this sheet. 
      */
-    public String text() {
-        return markdown;
+    public Optional<String> text() {
+        return Optional.ofNullable( StringUtils.isBlank( markdown ) ? null : markdown );
     }
 
     /**
