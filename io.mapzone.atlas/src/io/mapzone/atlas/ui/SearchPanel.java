@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2016, the @authors. All rights reserved.
+ * Copyright (C) 2016-2018, the @authors. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -48,6 +48,8 @@ import org.polymap.rhei.batik.toolkit.ClearTextAction;
 import org.polymap.rhei.batik.toolkit.TextActionItem;
 import org.polymap.rhei.batik.toolkit.TextActionItem.Type;
 import org.polymap.rhei.batik.toolkit.md.MdListViewer;
+import org.polymap.rhei.batik.toolkit.md.TreeExpandStateDecorator;
+
 import org.polymap.p4.P4Panel;
 
 import io.mapzone.atlas.AtlasFeatureLayer;
@@ -72,7 +74,7 @@ public class SearchPanel
 
     private ActionText              searchText;
 
-    private MdListViewer            viewer;
+    private MdListViewer            list;
     
     private SearchContentProvider   contentProvider;
 
@@ -110,24 +112,21 @@ public class SearchPanel
         new ClearTextAction( searchText );
         //searchText.getText().forceFocus();
 
-        // viewer
-        viewer = tk().createListViewer( parent, SWT.VIRTUAL, SWT.SINGLE, SWT.FULL_SELECTION );
-        viewer.setContentProvider( 
-                contentProvider = new SearchContentProvider() );
-        viewer.firstLineLabelProvider.set( 
-                //new TreeExpandStateDecorator( viewer, 
-                new SearchLabelProvider() );
-        viewer.secondLineLabelProvider.set( 
-                new SearchDescriptionProvider() );
-        viewer.iconProvider.set( 
-                new LayersIconProvider() );
-        viewer.addOpenListener( ev -> 
-                SelectionAdapter.on( ev.getSelection() ).first( ILayer.class ).ifPresent( l -> doToggleLayer( l ) ) );
-        viewer.setInput( map.get() );
+        // list
+        list = tk().createListViewer( parent, SWT.VIRTUAL, SWT.SINGLE, SWT.FULL_SELECTION );
+        list.setContentProvider( contentProvider = new SearchContentProvider() );
+        list.firstLineLabelProvider.set( new TreeExpandStateDecorator( list, new SearchLabelProvider() )
+                .luminanceDelta.put( 0f ).saturationDelta.put( 0f ) );
+        list.secondLineLabelProvider.set( new SearchDescriptionProvider() );
+        list.iconProvider.set( new LayersIconProvider() );
+        list.addOpenListener( ev -> { 
+            SelectionAdapter.on( ev.getSelection() ).first( ILayer.class ).ifPresent( l -> doToggleLayer( l ) );
+        });
+        list.setInput( map.get() );
 
         // layout
         FormDataFactory.on( searchText.getControl() ).fill().height( 30 ).noBottom();
-        FormDataFactory.on( viewer.getTree() ).fill().top( searchText.getControl() );
+        FormDataFactory.on( list.getTree() ).fill().top( searchText.getControl() );
     }
 
     
@@ -147,17 +146,17 @@ public class SearchPanel
      * 
      */
     protected void doToggleLayer( ILayer layer ) {
-        viewer.toggleItemExpand( layer );
+        list.toggleItemExpand( layer );
         
         AtlasFeatureLayer.of( layer ).thenAccept( o -> {
-            boolean expanded = viewer.getExpandedState( layer );
+            boolean expanded = list.getExpandedState( layer );
             o.ifPresent( afl -> afl.visible.set( expanded ) );    
         });
     }
     
     
     /**
-     * Labels for {@link SearchPanel#viewer}. 
+     * Labels for {@link SearchPanel#list}. 
      */
     protected class SearchLabelProvider
             extends CellLabelProvider {
@@ -194,7 +193,7 @@ public class SearchPanel
                                     cell.setText( layerLabel + " (" + polled.get() + ")" );
                                     if (AtlasFeatureLayer.of( layer ).get().get().visible.get()) {
                                         log.info( "expand: " + layer.label.get() );
-                                        viewer.expandToLevel( layer, 1 );
+                                        list.expandToLevel( layer, 1 );
                                     }
                                     return null;
                                 });
@@ -228,7 +227,7 @@ public class SearchPanel
 
     
     /**
-     * Descriptions for {@link SearchPanel#viewer}. 
+     * Descriptions for {@link SearchPanel#list}. 
      */
     protected class SearchDescriptionProvider
             extends CellLabelProvider {
@@ -256,7 +255,7 @@ public class SearchPanel
 
     
     /**
-     * Icons for {@link SearchPanel#viewer}.
+     * Icons for {@link SearchPanel#list}.
      */
     protected final class LayersIconProvider
             extends CellLabelProvider {

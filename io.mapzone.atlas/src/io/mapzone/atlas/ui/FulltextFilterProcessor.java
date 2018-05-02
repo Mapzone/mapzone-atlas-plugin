@@ -26,10 +26,12 @@ import org.polymap.core.data.DataPlugin;
 import org.polymap.core.data.feature.DefaultFeaturesProcessor;
 import org.polymap.core.data.feature.FeaturesProducer;
 import org.polymap.core.data.feature.GetBoundsRequest;
+import org.polymap.core.data.feature.GetBoundsResponse;
 import org.polymap.core.data.feature.GetFeatureTypeResponse;
 import org.polymap.core.data.feature.GetFeaturesRequest;
 import org.polymap.core.data.feature.GetFeaturesResponse;
 import org.polymap.core.data.feature.GetFeaturesSizeRequest;
+import org.polymap.core.data.feature.GetFeaturesSizeResponse;
 import org.polymap.core.data.feature.ModifyFeaturesResponse;
 import org.polymap.core.data.feature.TransactionResponse;
 import org.polymap.core.data.pipeline.Consumes;
@@ -141,8 +143,8 @@ public class FulltextFilterProcessor
     }
 
 
-    @Produces( {TransactionResponse.class, ModifyFeaturesResponse.class, GetFeatureTypeResponse.class, GetFeaturesResponse.class, EndOfProcessing.class} )
-    @Consumes( {TransactionResponse.class, ModifyFeaturesResponse.class, GetFeatureTypeResponse.class, GetFeaturesResponse.class, EndOfProcessing.class} )
+    @Produces( {TransactionResponse.class, ModifyFeaturesResponse.class, GetBoundsResponse.class, GetFeaturesSizeResponse.class, GetFeatureTypeResponse.class, GetFeaturesResponse.class, EndOfProcessing.class} )
+    @Consumes( {TransactionResponse.class, ModifyFeaturesResponse.class, GetBoundsResponse.class, GetFeaturesSizeResponse.class, GetFeatureTypeResponse.class, GetFeaturesResponse.class, EndOfProcessing.class} )
     public void handleResponse( ProcessorResponse response, ProcessorContext context ) throws Exception {
         context.sendResponse( response );
     }

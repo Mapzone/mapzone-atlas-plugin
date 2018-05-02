@@ -48,5 +48,5 @@
 <booleanAttribute key="tracing" value="false"/>
 <booleanAttribute key="useCustomFeatures" value="false"/>
 <booleanAttribute key="useDefaultConfigArea" value="true"/>
-<stringAttribute key="workspace_bundles" value="io.mapzone.atlas@default:default,org.polymap.cms@default:default,org.polymap.core.style@default:default,org.polymap.model2@default:default,org.polymap.p4@default:default"/>
+<stringAttribute key="workspace_bundles" value="io.mapzone.atlas@default:default,org.polymap.cms@default:default,org.polymap.core.style@default:default,org.polymap.model2@default:default,org.polymap.p4@default:default,org.polymap.rhei.batik@default:default"/>
 </launchConfiguration>

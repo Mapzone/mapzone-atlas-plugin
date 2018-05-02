@@ -83,7 +83,7 @@ public class AtlasLayersPanel
     @Scope( AtlasPlugin.Scope)
     protected Context<ILayer>           selected;
 
-    private MdListViewer                viewer;
+    private MdListViewer                list;
 
     
     @Override
@@ -103,24 +103,24 @@ public class AtlasLayersPanel
         site().title.set( "Hintergrund" );
         parent.setLayout( FormLayoutFactory.defaults().margins( 3, 3, 17, 3 ).spacing( 8 ).create() );
 
-        // viewer
-        viewer = tk().createListViewer( parent, SWT.SINGLE, SWT.FULL_SELECTION );
-        viewer.setContentProvider( new ImageLayersContentProvider() );
+        // list
+        list = tk().createListViewer( parent, SWT.SINGLE, SWT.FULL_SELECTION );
+        list.setContentProvider( new ImageLayersContentProvider() );
 
-        viewer.firstLineLabelProvider.set( new ProjectNodeLabelProvider( PropType.Label ).abbreviate.put( 35 ) );
-        viewer.secondLineLabelProvider.set( new ProjectNodeLabelProvider( PropType.Description ).abbreviate.put( 45 ) );
-        viewer.iconProvider.set( new LayerIconProvider() );
+        list.firstLineLabelProvider.set( new ProjectNodeLabelProvider( PropType.Label ).abbreviate.put( 35 ) );
+        list.secondLineLabelProvider.set( new ProjectNodeLabelProvider( PropType.Description ).abbreviate.put( 45 ) );
+        list.iconProvider.set( new LayerIconProvider() );
         
-        viewer.firstSecondaryActionProvider.set( new LayerVisibleAction());
+        list.firstSecondaryActionProvider.set( new LayerVisibleAction());
         
-        viewer.addOpenListener( new IOpenListener() {
+        list.addOpenListener( new IOpenListener() {
             @Override public void open( OpenEvent ev ) {
                 SelectionAdapter.on( ev.getSelection() ).forEach( elm -> {
                     selected.set( (ILayer)elm );
                 });
             }
         });
-        viewer.setInput( map.get() );
+        list.setInput( map.get() );
 
         // layer settings
         IPanelSection section = tk().createPanelSection( parent, "Transparenz", SWT.BORDER );
@@ -132,8 +132,8 @@ public class AtlasLayersPanel
         FormDataFactory.on( slider ).fill().noBottom();
         
         // noBottom: avoid empty rows and lines
-        FormDataFactory.on( viewer.getControl() ).fill().bottom( 50 );
-        FormDataFactory.on( section.getControl() ).fill().top( viewer.getTree() );
+        FormDataFactory.on( list.getControl() ).fill().bottom( 50 );
+        FormDataFactory.on( section.getControl() ).fill().top( list.getTree() );
     }
 
     

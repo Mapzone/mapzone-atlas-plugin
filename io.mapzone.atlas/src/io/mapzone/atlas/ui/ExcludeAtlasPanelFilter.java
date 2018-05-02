@@ -24,11 +24,11 @@ import io.mapzone.atlas.AtlasPlugin;
  *
  * @author Falko Bräutigam
  */
-public class ArenaPanelFilter
+public class ExcludeAtlasPanelFilter
         implements IPanelFilter {
 
     @Override
     public boolean apply( IPanel panel ) {
-        return !panel.getClass().getName().startsWith( AtlasPlugin.ID );
+        return !panel.getClass().getName().startsWith( AtlasPlugin.ID + ".ui" );
     }
 }

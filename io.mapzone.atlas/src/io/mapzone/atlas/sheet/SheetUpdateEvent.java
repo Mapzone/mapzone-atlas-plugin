@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2016, the @authors. All rights reserved.
+ * Copyright (C) 2018, the @authors. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -12,24 +12,25 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
  */
-package io.mapzone.atlas.ui;
+package io.mapzone.atlas.sheet;
 
-import org.polymap.rhei.batik.IPanel;
-import org.polymap.rhei.batik.IPanelFilter;
-
-import io.mapzone.atlas.AtlasPlugin;
+import java.util.EventObject;
 
 /**
  * 
  *
  * @author Falko Bräutigam
  */
-public class AtlasPanelFilter
-        implements IPanelFilter {
+public class SheetUpdateEvent
+        extends EventObject {
+
+    public SheetUpdateEvent( MarkdownScriptSheet source ) {
+        super( source );
+    }
 
     @Override
-    public boolean apply( IPanel panel ) {
-        return panel.getClass().getName().startsWith( AtlasPlugin.ID );
+    public MarkdownScriptSheet getSource() {
+        return (MarkdownScriptSheet)super.getSource();
     }
     
 }

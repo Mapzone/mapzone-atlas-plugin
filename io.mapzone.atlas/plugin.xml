@@ -52,6 +52,10 @@
             id="io.mapzone.atlas.AtlasLayersPanel"
             stackPriority="10">
       </panel>
+      <panel
+            class="io.mapzone.atlas.sheet.LayerSheetsHelpPanel"
+            id="io.mapzone.atlas.LayerSheetsHelpPanel">
+      </panel>
    </extension>
    <extension
          point="org.polymap.rhei.batik.panelFilters">
@@ -60,8 +64,12 @@
             servletNameMatcher="/atlas">
       </panelFilter>
       <panelFilter
-            class="io.mapzone.atlas.ui.ArenaPanelFilter"
+            class="io.mapzone.atlas.ui.ExcludeAtlasPanelFilter"
             servletNameMatcher="/arena">
+      </panelFilter>
+      <panelFilter
+            class="io.mapzone.atlas.ui.ExcludeAtlasPanelFilter"
+            servletNameMatcher="/p4">
       </panelFilter>
    </extension>
    <extension
@@ -71,6 +79,13 @@
             id="io.mapzone.atlas.FulltextFilterProcessor"
             name="FulltextFilterProcessor">
       </listener>
+   </extension>
+   <extension
+         point="org.polymap.rhei.batik.contributions">
+      <contributions
+            class="io.mapzone.atlas.sheet.LayerSheetContribution"
+            id="io.mapzone.atlas.LayerSheetContribution">
+      </contributions>
    </extension>
 
 </plugin>

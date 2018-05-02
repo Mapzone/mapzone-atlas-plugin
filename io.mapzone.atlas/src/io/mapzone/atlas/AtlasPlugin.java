@@ -17,6 +17,10 @@ package io.mapzone.atlas;
 import static org.apache.commons.io.FileUtils.byteCountToDisplaySize;
 
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
+import org.osgi.service.http.HttpService;
+import org.osgi.service.http.NamespaceException;
+import org.osgi.util.tracker.ServiceTracker;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -64,6 +68,8 @@ public class AtlasPlugin
 
     public SvgImageRegistryHelper   images = new SvgImageRegistryHelper( this );
 
+    private ServiceTracker httpServiceTracker;
+
 
     public void start( BundleContext context ) throws Exception {
         super.start( context );
@@ -76,6 +82,23 @@ public class AtlasPlugin
             //atlasIndex.update();
         }
         
+        // register HTTP resource
+        httpServiceTracker = new ServiceTracker( context, HttpService.class.getName(), null ) {
+            @Override public Object addingService( ServiceReference reference ) {
+                HttpService httpService = (HttpService)super.addingService( reference );                
+                if (httpService != null) {
+                    try {
+                        httpService.registerResources( "/atlasdoc", "/doc", null );
+                    }
+                    catch (NamespaceException e) {
+                        throw new RuntimeException( e );
+                    }
+                }
+                return httpService;
+            }
+        };
+        httpServiceTracker.open();
+        
 //        // JAAS config: no dialog; let LoginPanel create UI
 //        SecurityContext.registerConfiguration( () -> new StandardConfiguration() {
 //            @Override
@@ -87,6 +110,9 @@ public class AtlasPlugin
 
 
     public void stop( BundleContext context ) throws Exception {
+        httpServiceTracker.close();
+        httpServiceTracker = null;
+
         instance = null;
         super.stop( context );
     }
