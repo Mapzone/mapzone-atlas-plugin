@@ -222,7 +222,15 @@ public class LayerSheetsHelpPanel
         
         protected void update( Label l, LayerSheet _sheet ) throws Exception {
             if (!l.isDisposed()) {
-                l.setBackground( new HSLColor( l.getParent().getBackground() ).adjustShade( 4 ).toSWT() );
+//                l.setBackground( UIUtils.getColor( 255, 252, 204 ) );
+//                IPanelSection panelSection = site().getPanelSection();
+//                Composite parent = panelSection.getControl();
+//                parent.setBackground( new HSLColor( parent.getBackground() ).adjustShade( 2 ).toSWT() );
+//                parent = panelSection.getBody();
+//                parent.setBackground( new HSLColor( parent.getBackground() ).adjustShade( 2 ).toSWT() );
+                l.setBackground( new HSLColor( l.getParent().getBackground() )
+                        .adjustLuminance( -3 )
+                        .adjustSaturation( 20 ).toSWT() );
                 
                 MarkdownScriptSheet sheet = MarkdownScriptSheet.of( layer.get(), _sheet );
                 sheet.setVariable( "layer", layer.get() );
