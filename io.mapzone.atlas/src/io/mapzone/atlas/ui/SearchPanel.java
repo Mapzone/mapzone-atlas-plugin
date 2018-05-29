@@ -15,10 +15,11 @@
 package io.mapzone.atlas.ui;
 
 import java.util.Optional;
+import java.util.function.Consumer;
 
 import org.opengis.feature.Feature;
-import org.opengis.feature.Property;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -26,9 +27,12 @@ import com.google.common.base.Joiner;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Label;
 
 import org.eclipse.jface.viewers.CellLabelProvider;
 import org.eclipse.jface.viewers.ViewerCell;
+
+import org.eclipse.core.runtime.IProgressMonitor;
 
 import org.polymap.core.project.ILayer;
 import org.polymap.core.project.IMap;
@@ -37,6 +41,7 @@ import org.polymap.core.runtime.UIThreadExecutor;
 import org.polymap.core.ui.FormDataFactory;
 import org.polymap.core.ui.FormLayoutFactory;
 import org.polymap.core.ui.SelectionAdapter;
+import org.polymap.core.ui.UIUtils;
 
 import org.polymap.rhei.batik.Context;
 import org.polymap.rhei.batik.Mandatory;
@@ -45,15 +50,19 @@ import org.polymap.rhei.batik.Scope;
 import org.polymap.rhei.batik.app.SvgImageRegistryHelper;
 import org.polymap.rhei.batik.toolkit.ActionText;
 import org.polymap.rhei.batik.toolkit.ClearTextAction;
+import org.polymap.rhei.batik.toolkit.SimpleDialog;
 import org.polymap.rhei.batik.toolkit.TextActionItem;
 import org.polymap.rhei.batik.toolkit.TextActionItem.Type;
 import org.polymap.rhei.batik.toolkit.md.MdListViewer;
 import org.polymap.rhei.batik.toolkit.md.TreeExpandStateDecorator;
 
+import org.polymap.model2.test.Timer;
 import org.polymap.p4.P4Panel;
 
 import io.mapzone.atlas.AtlasFeatureLayer;
 import io.mapzone.atlas.AtlasPlugin;
+import io.mapzone.atlas.sheet.MarkdownScriptSheet;
+import io.mapzone.atlas.sheet.MarkdownScriptSheet.LayerSheet;
 
 /**
  * 
@@ -120,7 +129,13 @@ public class SearchPanel
         list.secondLineLabelProvider.set( new SearchDescriptionProvider() );
         list.iconProvider.set( new LayersIconProvider() );
         list.addOpenListener( ev -> { 
-            SelectionAdapter.on( ev.getSelection() ).first( ILayer.class ).ifPresent( l -> doToggleLayer( l ) );
+            SelectionAdapter sel = UIUtils.selection( ev.getSelection() );
+            sel.first( ILayer.class ).ifPresent( l -> {
+                doToggleLayer( l );
+            });
+            sel.first( Feature.class ).ifPresent( f -> {
+                doOpenDialog( f );
+            });
         });
         list.setInput( map.get() );
 
@@ -156,6 +171,39 @@ public class SearchPanel
     
     
     /**
+     * 
+     */
+    protected void doOpenDialog( Feature f ) {
+        SimpleDialog dialog = new SimpleDialog()
+                .title.put( "..." )
+                .setContents( parent -> {
+                    parent.setLayout( FormLayoutFactory.defaults().margins( 8, 0 ).create() );
+                    Label text = tk().createFlowText( parent, "...", SWT.WRAP );
+                    FormDataFactory.on( text ).fill().width( P4Panel.SIDE_PANEL_WIDTH-50 );
+                    new ScriptJob( f, LayerSheet.DETAIL, t -> {
+                        text.setText( t );
+                        parent.getParent().layout( true, true );
+                        parent.getDisplay().timerExec( 500, () -> {
+                            // last resort if font/text size recognition did not work
+                            log.info( "Text: " + text.getSize() );
+                            if (text.getSize().y < 250) {
+                                //text.setText( text.getText() + " " );
+                                FormDataFactory.on( text ).fill().height( 300 ).width( P4Panel.SIDE_PANEL_WIDTH-48 );
+                                parent.getParent().layout( true, true );
+                            }
+                        });
+                    });
+                })
+                .addOkAction( "Close", () -> {
+                    return true;
+                });
+        new ScriptJob( f, LayerSheet.TITLE, t -> 
+                dialog.getShell().setText( StringUtils.abbreviate( t, 35 ) ) );
+        dialog.openAndBlock();
+    }
+    
+    
+    /**
      * Labels for {@link SearchPanel#list}. 
      */
     protected class SearchLabelProvider
@@ -184,7 +232,7 @@ public class SearchPanel
                     cell.setText( layerLabel + " (..)" );
                     // poll contentProvider for child count
                     contentProvider.updateLayer( layer, -1 );
-                    UIJob.schedule( "Layer child count: " + layer.label.get(), monitor -> {
+                    UIJob.schedule( layer.label.get(), monitor -> {
                         for (int c=0; c<100; c++) {
                             Thread.sleep( 100 );
                             Optional<Integer> polled = contentProvider.cachedChildCount( layer );
@@ -205,19 +253,7 @@ public class SearchPanel
             }
             // Feature
             else if (elm instanceof Feature) {
-                Property prop = ((Feature)elm).getProperty( "Name" );
-                if (prop != null) {
-                    cell.setText( prop.getValue().toString() );
-                    return;
-                }
-                prop = ((Feature)elm).getProperty( "NAME" );
-                if (prop != null) {
-                    cell.setText( prop.getValue().toString() );
-                    return;
-                }
-                else {
-                    cell.setText( ((Feature)elm).getIdentifier().getID() );
-                }
+                new ScriptJob( (Feature)elm, LayerSheet.TITLE, text -> cell.setText( text ) );
             }
             else {
                 throw new IllegalStateException( "Unknown element type: " + elm );
@@ -245,7 +281,7 @@ public class SearchPanel
             }
             // Feature
             else if (elm instanceof Feature) {
-                cell.setText( "Südstr. 6, 04425 Taucha" );
+                new ScriptJob( (Feature)elm, LayerSheet.DESCRIPTION, text -> cell.setText( text ) );
             }
             else {
                 throw new IllegalStateException( "Unknown element type: " + elm );
@@ -272,4 +308,45 @@ public class SearchPanel
         }
     }
 
+    
+    /**
+     * 
+     */
+    protected class ScriptJob
+            extends UIJob {
+
+        private Feature             feature;
+        
+        private LayerSheet          layerSheet;
+
+        private Consumer<String>    consumer;
+        
+        public ScriptJob( Feature feature, LayerSheet layerSheet, Consumer<String> consumer ) {
+            super( "Script" );
+            this.layerSheet = layerSheet;
+            this.feature = feature;
+            this.consumer = consumer;
+            schedule();
+        }
+
+        @Override
+        protected void runWithException( IProgressMonitor monitor ) throws Exception {
+            try {
+                Timer timer = Timer.startNow();
+                ILayer layer = (ILayer)contentProvider.getParent( feature );
+                MarkdownScriptSheet sheet = MarkdownScriptSheet.of( layer, layerSheet );
+                sheet.setVariables( layer, feature );
+                String text = sheet.build( monitor );
+                log.info( "Script " + layerSheet + ": " + timer.elapsedTime() + "ms" );
+                UIThreadExecutor.async( () -> {
+                    consumer.accept( text );
+                });
+            }
+            catch (Exception e) {
+                // don't bother client UI
+                log.warn( "", e );
+            }
+        }
+    }
+    
 }

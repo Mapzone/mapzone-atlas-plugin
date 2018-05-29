@@ -29,6 +29,9 @@ import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 
+import org.opengis.feature.Feature;
+import org.opengis.feature.Property;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -103,7 +106,6 @@ public class MarkdownScriptSheet {
 
     /**
      * 
-     *
      * @return this
      */
     public MarkdownScriptSheet setVariable( String name, Object value ) {
@@ -113,13 +115,29 @@ public class MarkdownScriptSheet {
 
     /**
      * 
-     *
      * @return this
      * @throws IllegalStateException If the given name already exists.
      */
     public MarkdownScriptSheet addVariable( String name, Object value ) {
         if (variables.put( name, value ) != null) {
             throw new IllegalStateException( "Name already exists: " + name );
+        }
+        return this;
+    }
+
+    /**
+     * 
+     * @return this
+     */
+    public MarkdownScriptSheet setVariables( ILayer layer, Feature feature ) {
+        setVariable( "layer", layer );
+        setVariable( "layer_name", layer.label.get() );
+        setVariable( "layer_title", layer.label.get() );
+        setVariable( "layer_description", layer.description.get() );
+        setVariable( "layer_keywords", layer.keywords );
+        
+        for (Property p : feature.getProperties()) {
+            setVariable( p.getName().getLocalPart(), p.getValue() );
         }
         return this;
     }

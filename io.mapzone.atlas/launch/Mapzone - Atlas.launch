@@ -23,7 +23,7 @@
 <stringAttribute key="org.eclipse.jdt.launching.JRE_CONTAINER" value="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
 <stringAttribute key="org.eclipse.jdt.launching.PROGRAM_ARGUMENTS" value="-os ${target.os} -ws ${target.ws} -arch ${target.arch} -nl ${target.nl} -console -consolelog -data ${env_var:HOME}/servers/workspace-atlas -statushandler org.polymap.rhei.batik.statusHandler -debug"/>
 <stringAttribute key="org.eclipse.jdt.launching.SOURCE_PATH_PROVIDER" value="org.eclipse.pde.ui.workbenchClasspathProvider"/>
-<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dosgi.noShutdown=true -Declipse.ignoreApp=true -client -XX:+TieredCompilation -Xmx256m -XX:+UseG1GC -ea -XX:SoftRefLRUPolicyMSPerMB=1000 -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=1617 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dio.mapzone.arena.googleAnalytics=off"/>
+<stringAttribute key="org.eclipse.jdt.launching.VM_ARGUMENTS" value="-Dosgi.noShutdown=true -Declipse.ignoreApp=true -XX:+TieredCompilation -Xmx256m -XX:+UseG1GC -ea -XX:SoftRefLRUPolicyMSPerMB=1000 &#10;-Dcom.sun.management.jmxremote &#10;-Dcom.sun.management.jmxremote.port=1617 &#10;-Dcom.sun.management.jmxremote.authenticate=false &#10;-Dcom.sun.management.jmxremote.ssl=false &#10;-Dio.mapzone.arena.googleAnalytics=off&#10;-Dorg.eclipse.equinox.http.jetty.ssl.keystore=/home/falko/Data/andrea/keystore.jks&#10;-Dorg.eclipse.equinox.http.jetty.ssl.password=123456&#10;-Dorg.eclipse.equinox.http.jetty.ssl.keypassword=123456&#10;-Dorg.eclipse.equinox.http.jetty.https.enabled=true&#10;-Dorg.eclipse.equinox.http.jetty.https.port=8443"/>
 <stringAttribute key="org.eclipse.jdt.launching.WORKING_DIRECTORY" value="${env_var:HOME}/servers/workspace-atlas"/>
 <stringAttribute key="org.eclipse.rap.launch.browserMode" value="EXTERNAL"/>
 <stringAttribute key="org.eclipse.rap.launch.contextpath" value=""/>
@@ -48,5 +48,5 @@
 <booleanAttribute key="tracing" value="false"/>
 <booleanAttribute key="useCustomFeatures" value="false"/>
 <booleanAttribute key="useDefaultConfigArea" value="true"/>
-<stringAttribute key="workspace_bundles" value="io.mapzone.atlas@default:default,org.polymap.core.style@default:default,org.polymap.model2@default:default,org.polymap.p4@default:default,org.polymap.rhei.batik@default:default"/>
+<stringAttribute key="workspace_bundles" value="io.mapzone.atlas@default:default,org.polymap.cms@default:default,org.polymap.core.style@default:default,org.polymap.model2@default:default,org.polymap.p4@default:default,org.polymap.rhei.batik@default:default"/>
 </launchConfiguration>

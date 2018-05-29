@@ -20,7 +20,6 @@ import java.io.IOException;
 import org.geotools.data.Query;
 import org.geotools.util.NullProgressListener;
 import org.opengis.feature.Feature;
-import org.opengis.feature.Property;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.PropertyDescriptor;
 
@@ -233,14 +232,7 @@ public class LayerSheetsHelpPanel
                         .adjustSaturation( 20 ).toSWT() );
                 
                 MarkdownScriptSheet sheet = MarkdownScriptSheet.of( layer.get(), _sheet );
-                sheet.setVariable( "layer", layer.get() );
-                sheet.setVariable( "layer_name", layer.get().label.get() );
-                sheet.setVariable( "layer_title", layer.get().label.get() );
-                sheet.setVariable( "layer_description", layer.get().description.get() );
-                sheet.setVariable( "layer_keywords", layer.get().keywords );
-                for (Property p : feature.waitAndGet().getProperties()) {
-                    sheet.setVariable( p.getName().getLocalPart(), p.getValue() );
-                }
+                sheet.setVariables( layer.get(), feature.waitAndGet() );
                 String content = sheet.build( new NullProgressMonitor() );
                 l.setText( content );
             }

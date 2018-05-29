@@ -18,8 +18,6 @@ import java.io.IOException;
 import org.geotools.data.Query;
 import org.geotools.util.NullProgressListener;
 import org.opengis.feature.Feature;
-import org.opengis.feature.Property;
-
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -229,14 +227,7 @@ public class LayerSheetsDashlet
             syntaxChecker = new UIJob( "Syntax check" ) {
                 @Override protected void runWithException( IProgressMonitor monitor ) throws Exception {
                     try {
-                        sheet.setVariable( "layer", layer.get() );
-                        sheet.setVariable( "layer_name", layer.get().label.get() );
-                        sheet.setVariable( "layer_title", layer.get().label.get() );
-                        sheet.setVariable( "layer_description", layer.get().description.get() );
-                        sheet.setVariable( "layer_keywords", layer.get().keywords );
-                        for (Property p : feature.waitAndGet().getProperties()) {
-                            sheet.setVariable( p.getName().getLocalPart(), p.getValue() );
-                        }
+                        sheet.setVariables( layer.get(), feature.waitAndGet() );
                         String result = sheet.check( modified, monitor );
                         log.debug( result );
                         isValid = true;
