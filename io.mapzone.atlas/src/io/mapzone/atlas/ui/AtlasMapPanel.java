@@ -15,29 +15,23 @@
 package io.mapzone.atlas.ui;
 
 import static org.polymap.core.runtime.event.TypeEventFilter.isType;
-import static org.polymap.p4.layer.FeatureLayer.ff;
 
-import org.geotools.data.FeatureStore;
-import org.geotools.feature.FeatureCollection;
-import org.geotools.geometry.jts.JTS;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.opengis.feature.Feature;
-import org.opengis.filter.Filter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.vividsolutions.jts.geom.Coordinate;
+//import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
 
 import org.eclipse.swt.widgets.Composite;
 
-import org.polymap.core.data.Features;
 import org.polymap.core.data.util.Geometries;
 import org.polymap.core.mapeditor.MapViewer;
 import org.polymap.core.project.ILayer;
@@ -54,13 +48,12 @@ import org.polymap.core.ui.UIUtils;
 
 import org.polymap.rhei.batik.Context;
 import org.polymap.rhei.batik.PanelIdentifier;
-import org.polymap.rhei.batik.PropertyAccessEvent;
 import org.polymap.rhei.batik.Scope;
 import org.polymap.rhei.batik.contribution.ContributionManager;
 import org.polymap.rhei.batik.toolkit.ActionItem;
 import org.polymap.rhei.batik.toolkit.Snackbar.Appearance;
-
 import org.polymap.p4.P4Panel;
+import org.polymap.p4.layer.FeatureClickEvent;
 import org.polymap.p4.layer.LayersCatalogsPanel;
 import org.polymap.p4.project.ProjectRepository;
 import org.polymap.rap.openlayers.base.OlEvent;
@@ -68,6 +61,7 @@ import org.polymap.rap.openlayers.base.OlEventListener;
 import org.polymap.rap.openlayers.base.OlMap.Event;
 import org.polymap.rap.openlayers.control.MousePositionControl;
 import org.polymap.rap.openlayers.control.ScaleLineControl;
+import org.polymap.rap.openlayers.types.Coordinate;
 import org.polymap.rap.openlayers.view.View;
 
 import io.mapzone.atlas.AtlasFeatureLayer;
@@ -117,11 +111,14 @@ public class AtlasMapPanel
         }
         
         //
-        featureLayer.addListener( this, ev -> ev.getType() == PropertyAccessEvent.TYPE.SET );
+        //featureLayer.addListener( this, ev -> ev.getType() == PropertyAccessEvent.TYPE.SET );
         
         // listen to maxExtent changes
         EventManager.instance().subscribe( this, isType( ProjectNodeCommittedEvent.class, ev -> 
                 ev.getEntityId().equals( map.get().id() ) ) );
+        
+        // listen to Feature click
+        EventManager.instance().subscribe( this, ev -> ev instanceof FeatureClickEvent ); 
     }
 
     
@@ -144,6 +141,23 @@ public class AtlasMapPanel
         if (!mapMaxExtent.equals( viewerMaxExtent )) {
             mapViewer.maxExtent.set( mapMaxExtent );
             mapViewer.mapExtent.set( mapMaxExtent );
+        }
+    }
+
+    
+    @EventHandler( display=true )
+    protected void onFeatureClick( FeatureClickEvent ev ) throws Exception {
+        if (mapViewer != null && !mapViewer.getControl().isDisposed()) {
+            Feature f = ev.clicked.get();
+            Geometry geom = (Geometry)f.getDefaultGeometryProperty().getValue();
+            Point centroid = geom.getCentroid();
+            centroid = Geometries.transform( centroid, 
+                    f.getDefaultGeometryProperty().getDescriptor().getCoordinateReferenceSystem(),
+                    mapViewer.getMapCRS() );
+            mapViewer.getMap().view.get().center.set( new Coordinate( centroid.getX(), centroid.getY() ) );
+        }
+        else {
+            EventManager.instance().unsubscribe( this );
         }
     }
 
@@ -207,7 +221,8 @@ public class AtlasMapPanel
 
             if (featureLayer.isPresent()) {
                 try {
-                    clickFeature( featureLayer.get().featureSource(), new Coordinate( x, y ) );
+                    log.info( "Clicked at: " + x + " - " + y );
+                    //clickFeature( featureLayer.get().featureSource(), new Coordinate( x, y ) );
                 }
                 catch (Exception e) {
                     StatusDispatcher.handleError( "Unable to select feature.", e );
@@ -237,35 +252,35 @@ public class AtlasMapPanel
     }
 
     
-    protected void clickFeature( FeatureStore fs, Coordinate clicked ) throws Exception {
-        CoordinateReferenceSystem mapCrs = Geometries.crs( map.get().srsCode.get() );
-        GeometryFactory gf = new GeometryFactory();
-
-        Point point = gf.createPoint( clicked );
-
-        // buffer: 50m
-        double buffer = 50;
-        Point norm = Geometries.transform( point, mapCrs, Geometries.crs( "EPSG:3857" ) );
-        ReferencedEnvelope buffered = new ReferencedEnvelope(
-                norm.getX()-buffer, norm.getX()+buffer, norm.getY()-buffer, norm.getY()+buffer,
-                Geometries.crs( "EPSG:3857" ) );
-        
-        // transform -> dataCrs
-        CoordinateReferenceSystem dataCrs = fs.getSchema().getCoordinateReferenceSystem();
-        buffered = buffered.transform( dataCrs, true );
-
-        // get feature
-        Filter filter = ff.intersects( ff.property( "" ), ff.literal( JTS.toGeometry( (Envelope)buffered ) ) );
-        FeatureCollection selected = fs.getFeatures( filter );
-        if (selected.isEmpty()) {
-            return; // nothing found
-        }
-        if (selected.size() > 1) {
-            log.info( "Multiple features found: " + selected.size() );
-        }
-        Feature any = (Feature)Features.stream( selected ).findAny().get();
-        featureLayer.get().setClicked( any );
-        log.info( "clicked: " + any );
-    }
+//    protected void clickFeature( FeatureStore fs, Coordinate clicked ) throws Exception {
+//        CoordinateReferenceSystem mapCrs = Geometries.crs( map.get().srsCode.get() );
+//        GeometryFactory gf = new GeometryFactory();
+//
+//        Point point = gf.createPoint( clicked );
+//
+//        // buffer: 50m
+//        double buffer = 50;
+//        Point norm = Geometries.transform( point, mapCrs, Geometries.crs( "EPSG:3857" ) );
+//        ReferencedEnvelope buffered = new ReferencedEnvelope(
+//                norm.getX()-buffer, norm.getX()+buffer, norm.getY()-buffer, norm.getY()+buffer,
+//                Geometries.crs( "EPSG:3857" ) );
+//        
+//        // transform -> dataCrs
+//        CoordinateReferenceSystem dataCrs = fs.getSchema().getCoordinateReferenceSystem();
+//        buffered = buffered.transform( dataCrs, true );
+//
+//        // get feature
+//        Filter filter = ff.intersects( ff.property( "" ), ff.literal( JTS.toGeometry( (Envelope)buffered ) ) );
+//        FeatureCollection selected = fs.getFeatures( filter );
+//        if (selected.isEmpty()) {
+//            return; // nothing found
+//        }
+//        if (selected.size() > 1) {
+//            log.info( "Multiple features found: " + selected.size() );
+//        }
+//        Feature any = (Feature)Features.stream( selected ).findAny().get();
+//        featureLayer.get().setClicked( any );
+//        log.info( "clicked: " + any );
+//    }
 
 }

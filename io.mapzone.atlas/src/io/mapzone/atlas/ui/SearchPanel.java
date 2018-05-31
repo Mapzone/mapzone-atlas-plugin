@@ -58,6 +58,7 @@ import org.polymap.rhei.batik.toolkit.md.TreeExpandStateDecorator;
 
 import org.polymap.model2.test.Timer;
 import org.polymap.p4.P4Panel;
+import org.polymap.p4.layer.FeatureLayer;
 
 import io.mapzone.atlas.AtlasFeatureLayer;
 import io.mapzone.atlas.AtlasPlugin;
@@ -134,6 +135,7 @@ public class SearchPanel
                 doToggleLayer( l );
             });
             sel.first( Feature.class ).ifPresent( f -> {
+                doCenterFeature( f );
                 doOpenDialog( f );
             });
         });
@@ -174,8 +176,7 @@ public class SearchPanel
      * 
      */
     protected void doOpenDialog( Feature f ) {
-        SimpleDialog dialog = new SimpleDialog()
-                .title.put( "..." )
+        SimpleDialog dialog = tk().createSimpleDialog( "..." )
                 .setContents( parent -> {
                     parent.setLayout( FormLayoutFactory.defaults().margins( 8, 0 ).create() );
                     Label text = tk().createFlowText( parent, "...", SWT.WRAP );
@@ -200,6 +201,14 @@ public class SearchPanel
         new ScriptJob( f, LayerSheet.TITLE, t -> 
                 dialog.getShell().setText( StringUtils.abbreviate( t, 35 ) ) );
         dialog.openAndBlock();
+    }
+    
+    
+    protected void doCenterFeature( Feature f ) {
+        ILayer layer = (ILayer)contentProvider.getParent( f );
+        FeatureLayer.of( layer ).thenAccept( fl -> {
+            fl.get().setClicked( f );
+        });
     }
     
     
