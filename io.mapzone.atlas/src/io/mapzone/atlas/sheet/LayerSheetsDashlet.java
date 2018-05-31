@@ -227,7 +227,7 @@ public class LayerSheetsDashlet
             syntaxChecker = new UIJob( "Syntax check" ) {
                 @Override protected void runWithException( IProgressMonitor monitor ) throws Exception {
                     try {
-                        sheet.setVariables( layer.get(), feature.waitAndGet() );
+                        sheet.setStandardVariables( layer.get(), feature.waitAndGet() );
                         String result = sheet.check( modified, monitor );
                         log.debug( result );
                         isValid = true;

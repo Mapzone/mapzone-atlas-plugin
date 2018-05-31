@@ -210,8 +210,14 @@ public class SearchContentProvider
      * Marks the given elm as {@link #CACHE_LOADING}. 
      */
     protected void updateChildrenLoading( Object elm ) {
-        cache.put( elm, CACHE_LOADING );
-        viewer.setChildCount( elm, 1 );         
+        try {
+            cache.put( elm, CACHE_LOADING );
+            viewer.setChildCount( elm, 1 );
+        }
+        catch (Exception e) {
+            // ColumnViewer.checkBusy()
+            log.warn( e.getLocalizedMessage() );
+        }
     }
 
 

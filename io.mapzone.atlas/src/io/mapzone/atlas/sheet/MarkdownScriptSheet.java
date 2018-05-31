@@ -14,9 +14,11 @@
  */
 package io.mapzone.atlas.sheet;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -31,6 +33,8 @@ import javax.script.SimpleBindings;
 
 import org.opengis.feature.Feature;
 import org.opengis.feature.Property;
+import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.feature.type.PropertyDescriptor;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -41,8 +45,11 @@ import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.OperationCanceledException;
 
 import org.polymap.core.CorePlugin;
+import org.polymap.core.data.PipelineFeatureSource;
 import org.polymap.core.project.ILayer;
 import org.polymap.core.runtime.event.EventManager;
+
+import org.polymap.p4.layer.FeatureLayer;
 
 import io.mapzone.atlas.AtlasPlugin;
 
@@ -66,6 +73,9 @@ public class MarkdownScriptSheet {
             "|" +                   // OR
             "([^$]+)\\$" +          // a script: $format(name)
             ")" );
+
+    // Invalid Groovy variable characters
+    public static final Pattern  INVALID_VARIABLE_CHAR_PATTERN = Pattern.compile( "[^a-zA-Z0-9_]" ); 
 
     public enum LayerSheet {
         TITLE, DESCRIPTION, DETAIL;
@@ -125,11 +135,41 @@ public class MarkdownScriptSheet {
         return this;
     }
 
+    
+    public static String normalizeVariable( String name ) {
+        return INVALID_VARIABLE_CHAR_PATTERN.matcher( name ).replaceAll( "_" );
+    }
+    
+    
     /**
+     * Returns a list of standard variables of the given layer and feature.
      * 
+     * @throws Exception If something goes wrong with {@link FeatureLayer}.
+     */
+    public static Map<String,Class<?>> getStandardVariables( ILayer layer ) throws Exception {
+        Map<String,Class<?>> result = new TreeMap();
+        result.put( "layer_name", String.class );
+        result.put( "layer_title", String.class );
+        result.put( "layer_description", String.class );
+        result.put( "layer_keywords", Collection.class );
+
+        PipelineFeatureSource fs = FeatureLayer.of( layer ).get().get().featureSource();
+        SimpleFeatureType schema = fs.getSchema();
+
+        for (PropertyDescriptor p : schema.getDescriptors()) {
+            result.put( normalizeVariable( p.getName().getLocalPart() ), p.getType().getBinding() );
+        }
+        return result;
+    }
+
+        
+    /**
+     * Sets standard variables of the given layer and feature.
+     * 
+     * @see #getVariables(ILayer, Feature)
      * @return this
      */
-    public MarkdownScriptSheet setVariables( ILayer layer, Feature feature ) {
+    public MarkdownScriptSheet setStandardVariables( ILayer layer, Feature feature ) {
         setVariable( "layer", layer );
         setVariable( "layer_name", layer.label.get() );
         setVariable( "layer_title", layer.label.get() );
@@ -137,7 +177,7 @@ public class MarkdownScriptSheet {
         setVariable( "layer_keywords", layer.keywords );
         
         for (Property p : feature.getProperties()) {
-            setVariable( p.getName().getLocalPart(), p.getValue() );
+            setVariable( normalizeVariable( p.getName().getLocalPart() ), p.getValue() );
         }
         return this;
     }

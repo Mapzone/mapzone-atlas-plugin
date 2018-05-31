@@ -184,7 +184,7 @@ public class SearchPanel
                         text.setText( t );
                         parent.getParent().layout( true, true );
                         parent.getDisplay().timerExec( 500, () -> {
-                            // last resort if font/text size recognition did not work
+                            // XXX last resort if font/text size recognition did not work
                             log.info( "Text: " + text.getSize() );
                             if (text.getSize().y < 250) {
                                 //text.setText( text.getText() + " " );
@@ -335,7 +335,7 @@ public class SearchPanel
                 Timer timer = Timer.startNow();
                 ILayer layer = (ILayer)contentProvider.getParent( feature );
                 MarkdownScriptSheet sheet = MarkdownScriptSheet.of( layer, layerSheet );
-                sheet.setVariables( layer, feature );
+                sheet.setStandardVariables( layer, feature );
                 String text = sheet.build( monitor );
                 log.info( "Script " + layerSheet + ": " + timer.elapsedTime() + "ms" );
                 UIThreadExecutor.async( () -> {

@@ -15,8 +15,10 @@
 package io.mapzone.atlas.sheet;
 
 import java.util.List;
+import java.util.Map.Entry;
 
 import java.io.IOException;
+
 import org.geotools.data.Query;
 import org.geotools.util.NullProgressListener;
 import org.opengis.feature.Feature;
@@ -232,7 +234,7 @@ public class LayerSheetsHelpPanel
                         .adjustSaturation( 20 ).toSWT() );
                 
                 MarkdownScriptSheet sheet = MarkdownScriptSheet.of( layer.get(), _sheet );
-                sheet.setVariables( layer.get(), feature.waitAndGet() );
+                sheet.setStandardVariables( layer.get(), feature.waitAndGet() );
                 String content = sheet.build( new NullProgressMonitor() );
                 l.setText( content );
             }
@@ -295,15 +297,8 @@ public class LayerSheetsHelpPanel
         public void createContents( Composite parent ) {
             parent.setLayout( ColumnLayoutFactory.defaults().columns( 1, 3 ).spacing( 3 ).margins( 3 ).create() );
             try {
-                PipelineFeatureSource fs = FeatureLayer.of( layer.get() ).get().get().featureSource();
-                SimpleFeatureType schema = fs.getSchema();
-                
-                createField( parent, "layer_name", "String" );
-                createField( parent, "layer_description", "String" );
-                createField( parent, "layer_keywords", "Collection" );
-                
-                for (PropertyDescriptor prop : schema.getDescriptors()) {
-                    createField( parent, prop.getName().getLocalPart(), prop.getType().getBinding().getSimpleName() );
+                for (Entry<String,Class<?>> entry : MarkdownScriptSheet.getStandardVariables( layer.get() ).entrySet()) { 
+                    createField( parent, entry.getKey(), entry.getValue().getSimpleName() );
                 }
             }
             catch (Exception e) {
