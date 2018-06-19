@@ -30,6 +30,7 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 
 import org.eclipse.jface.viewers.CellLabelProvider;
+import org.eclipse.jface.viewers.StructuredSelection;
 import org.eclipse.jface.viewers.ViewerCell;
 
 import org.eclipse.core.runtime.IProgressMonitor;
@@ -38,6 +39,8 @@ import org.polymap.core.project.ILayer;
 import org.polymap.core.project.IMap;
 import org.polymap.core.runtime.UIJob;
 import org.polymap.core.runtime.UIThreadExecutor;
+import org.polymap.core.runtime.event.EventHandler;
+import org.polymap.core.runtime.event.EventManager;
 import org.polymap.core.ui.FormDataFactory;
 import org.polymap.core.ui.FormLayoutFactory;
 import org.polymap.core.ui.SelectionAdapter;
@@ -58,8 +61,8 @@ import org.polymap.rhei.batik.toolkit.md.TreeExpandStateDecorator;
 
 import org.polymap.model2.test.Timer;
 import org.polymap.p4.P4Panel;
+import org.polymap.p4.layer.FeatureClickEvent;
 import org.polymap.p4.layer.FeatureLayer;
-
 import io.mapzone.atlas.AtlasFeatureLayer;
 import io.mapzone.atlas.AtlasPlugin;
 import io.mapzone.atlas.sheet.MarkdownScriptSheet;
@@ -100,10 +103,16 @@ public class SearchPanel
         return false;
     }
 
+    @Override
+    public void init() {
+        super.init();
+        EventManager.instance().subscribe( this, ev -> ev instanceof FeatureClickEvent ); 
+    }
 
     @Override
     public void dispose() {
         super.dispose();
+        EventManager.instance().unsubscribe( this );
     }
 
 
@@ -135,8 +144,8 @@ public class SearchPanel
                 doToggleLayer( l );
             });
             sel.first( Feature.class ).ifPresent( f -> {
-                doCenterFeature( f );
-                doOpenDialog( f );
+                doClickFeature( f );
+                //doOpenDialog( f );
             });
         });
         list.setInput( map.get() );
@@ -204,14 +213,33 @@ public class SearchPanel
     }
     
     
-    protected void doCenterFeature( Feature f ) {
+    /** 
+     * Fires {@link FeatureClickEvent}. 
+     */
+    protected void doClickFeature( Feature f ) {
         ILayer layer = (ILayer)contentProvider.getParent( f );
         FeatureLayer.of( layer ).thenAccept( fl -> {
             fl.get().setClicked( f );
         });
     }
+
     
-    
+    /**
+     * Select and reveal item in {@link #list} when feature was clicked on the
+     * {@link AtlasMapPanel} or in {@link #doClickFeature(Feature)}.
+     */
+    @EventHandler( display=true )
+    protected void onFeatureClick( FeatureClickEvent ev ) throws Exception {
+        if (list != null && !list.getControl().isDisposed()) {
+            list.setSelection( new StructuredSelection( ev.clicked.get() ), true );
+            doOpenDialog( ev.clicked.get() );
+        }
+        else {
+            EventManager.instance().unsubscribe( this );
+        }
+    }
+
+
     /**
      * Labels for {@link SearchPanel#list}. 
      */
