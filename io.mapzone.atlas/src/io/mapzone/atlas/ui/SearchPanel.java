@@ -172,12 +172,15 @@ public class SearchPanel
      * 
      */
     protected void doToggleLayer( ILayer layer ) {
-        list.toggleItemExpand( layer );
-        
+        // do this before list expand, so that map refresh does not wait
+        // for list content provider
+        boolean expanded = list.getExpandedState( layer );  // do this outside the thenAccept() job         
         AtlasFeatureLayer.of( layer ).thenAccept( o -> {
-            boolean expanded = list.getExpandedState( layer );
-            o.ifPresent( afl -> afl.visible.set( expanded ) );    
+            o.get().visible.set( !expanded );               // intentionally fails if not present    
         });
+        
+        // triggers list refresh and content provider voodoo
+        list.toggleItemExpand( layer );
     }
     
     

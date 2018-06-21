@@ -120,8 +120,8 @@ public class AtlasMapContentProvider
     }
 
 
-    @EventHandler( display=true, delay=750 )
-    protected void onAtlasPropertyChange( List<PropertyChangeEvent> evs ) {
+    @EventHandler( display=true, delay=250 )
+    protected void onAtlasFeatureLayerChange( List<PropertyChangeEvent> evs ) {
         for (PropertyChangeEvent ev : evs) {
             Config prop = ev.prop.get();
             if (prop.equals( AtlasFeatureLayer.TYPE.visible )) {

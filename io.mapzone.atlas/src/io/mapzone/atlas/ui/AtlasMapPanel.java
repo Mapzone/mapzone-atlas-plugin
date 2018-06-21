@@ -17,6 +17,11 @@ package io.mapzone.atlas.ui;
 import static org.polymap.core.data.DataPlugin.ff;
 import static org.polymap.core.runtime.event.TypeEventFilter.isType;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+
 import org.geotools.feature.FeatureCollection;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.util.NullProgressListener;
@@ -54,6 +59,7 @@ import org.polymap.rhei.batik.PanelIdentifier;
 import org.polymap.rhei.batik.Scope;
 import org.polymap.rhei.batik.contribution.ContributionManager;
 
+import org.polymap.model2.test.Timer;
 import org.polymap.p4.P4Panel;
 import org.polymap.p4.layer.FeatureClickEvent;
 import org.polymap.p4.layer.FeatureLayer;
@@ -247,8 +253,6 @@ public class AtlasMapPanel
     
     @EventHandler( display=true )
     protected void onOlEvent( OlEvent ev ) {
-        log.info( "OlEvent: " + ev.properties() );
-        
         // pointer move
         OlMap.PointerEventPayload.findIn( ev ).ifPresent( payload -> {
             updateHoverLayer( payload.coordinate() );
@@ -277,39 +281,54 @@ public class AtlasMapPanel
     
     
     protected void updateHoverLayer( Coordinate coord ) {
-        log.info( "Coordinate: " + coord );
+        log.debug( "Coordinate: " + coord );
         hoverLayer.source.get().clear();
         
         // find nearest feature
         CoordinateReferenceSystem mapCrs = map.get().maxExtent().getCoordinateReferenceSystem();
         ReferencedEnvelope bbox = new ReferencedEnvelope( 
                 coord.x-SEARCH_RADIUS, coord.x+SEARCH_RADIUS, coord.y-SEARCH_RADIUS, coord.y+SEARCH_RADIUS, mapCrs );
-        
+        // start tasks for all (visible) layers
         hovered = null;
         AtomicDouble distance = new AtomicDouble( Double.MAX_VALUE );
+        List<Future> tasks = new ArrayList();
         for (ILayer layer : map.get().layers) {
-            try {
-                AtlasFeatureLayer afl = AtlasFeatureLayer.of( layer ).get().get();
-                if (afl.visible.get()) {
-                    PipelineFeatureSource fs = afl.featureLayer().featureSource();
-                    CoordinateReferenceSystem layerCrs = fs.getSchema().getCoordinateReferenceSystem();
-                    ReferencedEnvelope transformed = bbox.transform( layerCrs, true );
-                    FeatureCollection features = afl.featureLayer().featureSource().getFeatures( ff.bbox( ff.property( "" ), transformed ) );
-                    features.accepts( feature -> {
-                        Coordinate featureCoord = transformedFeatureCentroid( feature );
-                        double featureDistance = Math.sqrt( Math.pow( Math.abs( featureCoord.x - coord.x ), 2 ) + Math.pow( Math.abs( featureCoord.y - coord.y ), 2 ) );
-                        log.info( "Feature distance: " + featureDistance );
-                        if (featureDistance < distance.get()) {
-                            distance.set( featureDistance );
-                            hovered = Pair.of( feature, afl.layer() );
-                        }
-                    }, new NullProgressListener() );
+            tasks.add( AtlasFeatureLayer.of( layer ).thenAccept( afl -> {
+                if (afl.get().visible.get()) {
+                    try {
+                        Timer timer = Timer.startNow();
+                        PipelineFeatureSource fs = afl.get().featureLayer().featureSource();
+                        CoordinateReferenceSystem layerCrs = fs.getSchema().getCoordinateReferenceSystem();
+                        ReferencedEnvelope transformed = bbox.transform( layerCrs, true );
+                        FeatureCollection features = fs.getFeatures( ff.bbox( ff.property( "" ), transformed ) );
+                        features.accepts( feature -> {
+                            Coordinate featureCoord = transformedFeatureCentroid( feature );
+                            double featureDistance = Math.sqrt( Math.pow( Math.abs( featureCoord.x - coord.x ), 2 ) + Math.pow( Math.abs( featureCoord.y - coord.y ), 2 ) );
+                            log.info( "Feature distance: " + featureDistance );
+                            if (featureDistance < distance.get()) {
+                                distance.set( featureDistance );
+                                hovered = Pair.of( feature, afl.get().layer() );
+                            }
+                        }, new NullProgressListener() );
+                        log.info( "Task: " + layer.label.get() + " -> " + timer.elapsedTime() + "ms" );
+                    }
+                    catch (Exception e) {
+                        throw new RuntimeException( e );
+                    }
                 }
-            }
-            catch (Exception e) {
-                throw new RuntimeException( e );
-            }
+            }));
         }
+        // wait for all tasks to complete
+        try {
+            Thread.sleep( 3000 );
+            log.info( "go on..." );
+        }
+        catch (InterruptedException e1) {
+        }
+        tasks.forEach( task -> {
+            try { task.get(); }
+            catch (InterruptedException | ExecutionException e) { throw new RuntimeException( e ); }
+        });
         if (hovered != null) {
             hoverLayer.source.get().addFeature( new OlFeature()
                     .name.put( "HoverPoint" )

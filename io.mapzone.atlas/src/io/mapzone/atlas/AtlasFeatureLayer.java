@@ -37,7 +37,7 @@ import org.polymap.core.runtime.session.SessionSingleton;
 import org.polymap.p4.layer.FeatureLayer;
 
 /**
- * 
+ * Carries 
  *
  * @author Falko Bräutigam
  */
@@ -50,17 +50,24 @@ public class AtlasFeatureLayer
     
     private static ConcurrentMap<FeatureLayer,AtlasFeatureLayer>  instances = new MapMaker().weakKeys().makeMap();
             
+    
     /**
      * Returns the one and only {@link AtlasFeatureLayer} for the given
-     * {@link ILayer} in the current {@link SessionContext}. If not yet present this
-     * computes a new instance.
+     * {@link ILayer} in the current {@link SessionContext}. Computes a new instance
+     * if not yet present.
      *
      * @see FeatureLayer#of(ILayer)
      * @return Newly created or cached instance.
      */
     public static CompletableFuture<Optional<AtlasFeatureLayer>> of( ILayer layer ) {
-        return FeatureLayer.of( layer ).thenApply( optionalFeatureLayer -> 
-                optionalFeatureLayer.map( fl -> instances.computeIfAbsent( fl, _fl -> new AtlasFeatureLayer( _fl ) ) ) );
+        return FeatureLayer.of( layer ).thenApply( optionalFeatureLayer -> { 
+            return optionalFeatureLayer.map( fl -> { 
+                return instances.computeIfAbsent( fl, _fl -> {
+                    log.info( "Creating AtlasFeatureLayer for: " + _fl.layer().label.get() );
+                    return new AtlasFeatureLayer( _fl );
+                });
+            });
+        });
     }
     
     /**
