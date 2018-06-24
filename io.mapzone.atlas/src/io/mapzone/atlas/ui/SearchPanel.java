@@ -26,8 +26,10 @@ import org.apache.commons.logging.LogFactory;
 import com.google.common.base.Joiner;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
+import org.eclipse.swt.widgets.Shell;
 
 import org.eclipse.jface.viewers.CellLabelProvider;
 import org.eclipse.jface.viewers.StructuredSelection;
@@ -175,9 +177,7 @@ public class SearchPanel
         // do this before list expand, so that map refresh does not wait
         // for list content provider
         boolean expanded = list.getExpandedState( layer );  // do this outside the thenAccept() job         
-        AtlasFeatureLayer.of( layer ).thenAccept( o -> {
-            o.get().visible.set( !expanded );               // intentionally fails if not present    
-        });
+        AtlasFeatureLayer.of( layer ).visible.set( !expanded );  // intentionally fails if not present    
         
         // triggers list refresh and content provider voodoo
         list.toggleItemExpand( layer );
@@ -189,27 +189,35 @@ public class SearchPanel
      */
     protected void doOpenDialog( Feature f ) {
         SimpleDialog dialog = tk().createSimpleDialog( "..." )
-                .setContents( parent -> {
-                    parent.setLayout( FormLayoutFactory.defaults().margins( 8, 0 ).create() );
-                    Label text = tk().createFlowText( parent, "...", SWT.WRAP );
-                    FormDataFactory.on( text ).fill().width( P4Panel.SIDE_PANEL_WIDTH-50 );
-                    new ScriptJob( f, LayerSheet.DETAIL, t -> {
-                        text.setText( t );
-                        parent.getParent().layout( true, true );
-                        parent.getDisplay().timerExec( 500, () -> {
-                            // XXX last resort if font/text size recognition did not work
-                            log.info( "Text: " + text.getSize() );
-                            if (text.getSize().y < 250) {
-                                //text.setText( text.getText() + " " );
-                                FormDataFactory.on( text ).fill().height( 300 ).width( P4Panel.SIDE_PANEL_WIDTH-48 );
-                                parent.getParent().layout( true, true );
-                            }
-                        });
+            .setContents( parent -> {
+                parent.setLayout( FormLayoutFactory.defaults().margins( 8, 0 ).create() );
+                Label text = tk().createFlowText( parent, "...", SWT.WRAP );
+                int textWidth = P4Panel.SIDE_PANEL_WIDTH-50;
+                FormDataFactory.on( text ).fill().width( textWidth );
+                
+                new ScriptJob( f, LayerSheet.DETAIL, t -> {
+                    text.setText( t );
+
+                    Shell shell = parent.getShell();
+                    shell.layout( true, true );
+                    parent.getDisplay().timerExec( 500, () -> {
+                        shell.layout( true, true );
+                        // XXX last resort if font/text size recognition did not work
+                        log.info( "Text size: " + text.getSize() );
+                        log.info( "Shell size: " + parent.getShell().getSize() );
+                        if (shell.getSize().y < 200) {
+                            Point size = text.computeSize( textWidth, SWT.DEFAULT );
+                            text.setLayoutData( FormDataFactory.filled().height( size.y ).width( textWidth ).create() );
+                            shell.setSize( 388, 125 + size.y );
+                            shell.setLocation( shell.getLocation().x, shell.getLocation().y-100 );
+                        }
                     });
-                })
-                .addOkAction( "Close", () -> {
-                    return true;
                 });
+            })
+            .addOkAction( "Schließen", () -> {
+                return true;
+            });
+        
         new ScriptJob( f, LayerSheet.TITLE, t -> 
                 dialog.getShell().setText( StringUtils.abbreviate( t, 35 ) ) );
         dialog.openAndBlock();
@@ -279,7 +287,7 @@ public class SearchPanel
                             if (polled.isPresent()) {
                                 UIThreadExecutor.async( () -> { 
                                     cell.setText( layerLabel + " (" + polled.get() + ")" );
-                                    if (AtlasFeatureLayer.of( layer ).get().get().visible.get()) {
+                                    if (AtlasFeatureLayer.of( layer ).visible.get()) {
                                         log.info( "expand: " + layer.label.get() );
                                         list.expandToLevel( layer, 1 );
                                     }
