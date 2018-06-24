@@ -22,16 +22,18 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
-
 import org.geotools.data.Query;
 import org.opengis.feature.Feature;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import com.google.common.base.Throwables;
 
 import org.eclipse.jface.viewers.ILazyTreeContentProvider;
 import org.eclipse.jface.viewers.TreePath;
@@ -159,16 +161,19 @@ public class SearchContentProvider
        updateChildrenLoading( elm );
        
        ConcurrentMap<String,ILayer> children = new ConcurrentSkipListMap();
-       List<UIJob> jobs = new ArrayList();
+       List<CompletableFuture> tasks = new ArrayList();
        for (ILayer layer : elm.layers) {
-           UIJob job = UIJob.schedule( layer.label.get(), monitor -> {
-               if (AtlasFeatureLayer.of( layer ).get().isPresent()) {
+           AtlasFeatureLayer afl = AtlasFeatureLayer.of( layer );
+           tasks.add( afl.featureLayer().thenAccept( fl -> {
+               if (fl.isPresent()) {
                    children.put( layer.label.get(), layer );
                }
-           });
-           jobs.add( job );
+           }));
        };
-       jobs.forEach( job -> job.joinAndDispatch( 5000 ) );
+       tasks.forEach( task -> {
+           try { task.get(); }
+           catch (Exception e) { Throwables.propagate( e ); }
+       });
        
        updateChildren( elm, children.values().toArray(), currentChildCount );
    }

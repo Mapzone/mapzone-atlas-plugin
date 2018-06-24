@@ -119,7 +119,7 @@ public class FulltextFilterProcessor
     
     protected Query adapt( Query query ) throws Exception {
         Filter orig = query.getFilter();
-        Filter fulltext = AtlasFeatureLayer.of( layer ).get().get().fulltextFilter();
+        Filter fulltext = AtlasFeatureLayer.of( layer ).fulltextFilter();
         query.setFilter( DataPlugin.ff.and( orig, fulltext ) );
         return query;
     }

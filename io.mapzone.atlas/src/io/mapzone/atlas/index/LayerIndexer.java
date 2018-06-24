@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2017, the @authors. All rights reserved.
+ * Copyright (C) 2017-2018, the @authors. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -13,6 +13,8 @@
  * Lesser General Public License for more details.
  */
 package io.mapzone.atlas.index;
+
+import java.util.Optional;
 
 import org.geotools.data.FeatureSource;
 import org.geotools.feature.FeatureCollection;
@@ -70,22 +72,24 @@ class LayerIndexer
     
     @Override
     protected void runWithException( IProgressMonitor monitor ) throws Exception {
-        FeatureLayer featureLayer = FeatureLayer.of( layer ).get().get();
-        FeatureSource fs = featureLayer.featureSource();
-        FeatureCollection features = fs.getFeatures();
-        monitor.beginTask( layer.label.get(), IProgressMonitor.UNKNOWN /*features.size()*/ );
-        try (
-            FeatureIterator it = features.features();
-        ){
-            int count = 0;
-            for (;it.hasNext(); count++) {
-                JSONObject json = atlasIndex.transform( it.next() );
-                updater.store( json, true );
-                monitor.worked( 1 );
+        Optional<FeatureLayer> fl = FeatureLayer.of( layer ).get();
+        if (fl.isPresent()) {
+            FeatureSource fs = fl.get().featureSource();
+            FeatureCollection features = fs.getFeatures();
+            monitor.beginTask( layer.label.get(), IProgressMonitor.UNKNOWN /*features.size()*/ );
+            try (
+                FeatureIterator it = features.features();
+            ){
+                int count = 0;
+                for (;it.hasNext(); count++) {
+                    JSONObject json = atlasIndex.transform( it.next() );
+                    updater.store( json, true );
+                    monitor.worked( 1 );
+                }
+                log.info( "indexed: " + count );
             }
-            log.info( "indexed: " + count );
+            monitor.done();
         }
-        monitor.done();
     }
     
 }

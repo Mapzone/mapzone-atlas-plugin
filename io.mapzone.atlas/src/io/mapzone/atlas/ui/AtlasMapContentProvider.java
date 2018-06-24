@@ -18,7 +18,6 @@ import static org.polymap.core.runtime.event.TypeEventFilter.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -98,10 +97,10 @@ public class AtlasMapContentProvider
         elements.clear();
         for (ILayer layer : map.layers) {
             try {
+                AtlasFeatureLayer afl = AtlasFeatureLayer.of( layer );
                 // wait for (check) feature layer
-                Optional<AtlasFeatureLayer> featureLayer = AtlasFeatureLayer.of( layer ).get();
-                if (featureLayer.isPresent()) {
-                    if (featureLayer.get().visible.get()) {
+                if (afl.featureLayer().get().isPresent()) {
+                    if (afl.visible.get()) {
                         elements.add( layer );
                     }
                 }

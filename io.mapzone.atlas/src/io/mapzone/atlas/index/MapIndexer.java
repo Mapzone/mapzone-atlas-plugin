@@ -33,8 +33,6 @@ import org.polymap.rhei.fulltext.update.UpdateableFulltextIndex.Updater;
 import org.polymap.model2.runtime.UnitOfWork;
 import org.polymap.p4.project.ProjectRepository;
 
-import io.mapzone.atlas.AtlasFeatureLayer;
-
 /**
  * 
  *
@@ -78,11 +76,9 @@ class MapIndexer
             log.info( "Starting: " + map.label.get() );
             List<LayerIndexer> layerIndexers = new ArrayList();
             for (ILayer layer : map.layers) {
-                if (AtlasFeatureLayer.of( layer ).get().isPresent()) {
-                    LayerIndexer indexer = new LayerIndexer( layer, updater, atlasIndex );
-                    indexer.schedule();
-                    layerIndexers.add( indexer );
-                }
+                LayerIndexer indexer = new LayerIndexer( layer, updater, atlasIndex );
+                indexer.schedule();
+                layerIndexers.add( indexer );
             }
             // wait for layer jobs
             UIJob.joinJobs( layerIndexers );

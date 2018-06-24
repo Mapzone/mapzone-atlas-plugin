@@ -16,6 +16,7 @@ package io.mapzone.atlas;
 
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.geotools.data.Query;
@@ -23,8 +24,6 @@ import org.opengis.filter.Filter;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
-import com.google.common.collect.MapMaker;
 
 import org.polymap.core.project.ILayer;
 import org.polymap.core.runtime.config.Concern;
@@ -37,7 +36,7 @@ import org.polymap.core.runtime.session.SessionSingleton;
 import org.polymap.p4.layer.FeatureLayer;
 
 /**
- * Carries 
+ * Carries ...
  *
  * @author Falko Bräutigam
  */
@@ -46,11 +45,9 @@ public class AtlasFeatureLayer
 
     private static final Log log = LogFactory.getLog( AtlasFeatureLayer.class );
     
-    public static final AtlasFeatureLayer   TYPE = new AtlasFeatureLayer();
-    
-    private static ConcurrentMap<FeatureLayer,AtlasFeatureLayer>  instances = new MapMaker().weakKeys().makeMap();
-            
-    
+    /** A proto-type instance used to check equality of {@link Config properties}. */
+    public static final AtlasFeatureLayer   TYPE = new AtlasFeatureLayer( null );
+        
     /**
      * Returns the one and only {@link AtlasFeatureLayer} for the given
      * {@link ILayer} in the current {@link SessionContext}. Computes a new instance
@@ -59,14 +56,11 @@ public class AtlasFeatureLayer
      * @see FeatureLayer#of(ILayer)
      * @return Newly created or cached instance.
      */
-    public static CompletableFuture<Optional<AtlasFeatureLayer>> of( ILayer layer ) {
-        return FeatureLayer.of( layer ).thenApply( optionalFeatureLayer -> { 
-            return optionalFeatureLayer.map( fl -> { 
-                return instances.computeIfAbsent( fl, _fl -> {
-                    log.info( "Creating AtlasFeatureLayer for: " + _fl.layer().label.get() );
-                    return new AtlasFeatureLayer( _fl );
-                });
-            });
+    public static AtlasFeatureLayer of( ILayer layer ) {
+        SessionHolder session = SessionHolder.instance( SessionHolder.class ); 
+        return session.instances.computeIfAbsent( layer.id(), key -> {
+            log.info( "Creating AtlasFeatureLayer for: " + layer.label.get() );
+            return new AtlasFeatureLayer( layer );
         });
     }
     
@@ -78,15 +72,18 @@ public class AtlasFeatureLayer
         return SessionHolder.instance( SessionHolder.class ).layerQuery;
     }
 
-    static class SessionHolder
+    protected static class SessionHolder
             extends SessionSingleton {
-        public LayerQueryBuilder    layerQuery = new LayerQueryBuilder();
+        
+        ConcurrentMap<String,AtlasFeatureLayer> instances = new ConcurrentHashMap( 32 );
+        
+        LayerQueryBuilder    layerQuery = new LayerQueryBuilder();
     }
 
     
     // instance *******************************************
         
-    private FeatureLayer            featureLayer;
+    private ILayer                  layer;
 
     /** Layer is visible in the map. */
     @DefaultBoolean( false )
@@ -94,22 +91,22 @@ public class AtlasFeatureLayer
     public Config<Boolean>          visible;
     
     
-    protected AtlasFeatureLayer() {
+//    protected AtlasFeatureLayer() {
+//    }
+    
+    protected AtlasFeatureLayer( ILayer layer ) {
+        this.layer = layer;
     }
     
-    protected AtlasFeatureLayer( FeatureLayer featureLayer ) {
-        this.featureLayer = featureLayer;
-    }
-    
-    public FeatureLayer featureLayer() {
-        return featureLayer;
+    public CompletableFuture<Optional<FeatureLayer>> featureLayer() {
+        return FeatureLayer.of( layer );
     }
 
     /** 
      * Shortcut to {@link #featureLayer}.layer(). 
      */
     public ILayer layer() {
-        return featureLayer.layer();
+        return layer;
     }
 
     /**

@@ -19,7 +19,6 @@ import static org.polymap.core.runtime.event.TypeEventFilter.isType;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import org.geotools.feature.FeatureCollection;
@@ -32,6 +31,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.google.common.base.Throwables;
 import com.google.common.util.concurrent.AtomicDouble;
 //import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
@@ -293,11 +293,12 @@ public class AtlasMapPanel
         AtomicDouble distance = new AtomicDouble( Double.MAX_VALUE );
         List<Future> tasks = new ArrayList();
         for (ILayer layer : map.get().layers) {
-            tasks.add( AtlasFeatureLayer.of( layer ).thenAccept( afl -> {
-                if (afl.get().visible.get()) {
+            AtlasFeatureLayer afl = AtlasFeatureLayer.of( layer );
+            if (afl.visible.get()) {
+                tasks.add( afl.featureLayer().thenAccept( fl -> {
                     try {
                         Timer timer = Timer.startNow();
-                        PipelineFeatureSource fs = afl.get().featureLayer().featureSource();
+                        PipelineFeatureSource fs = fl.get().featureSource();
                         CoordinateReferenceSystem layerCrs = fs.getSchema().getCoordinateReferenceSystem();
                         ReferencedEnvelope transformed = bbox.transform( layerCrs, true );
                         FeatureCollection features = fs.getFeatures( ff.bbox( ff.property( "" ), transformed ) );
@@ -307,7 +308,7 @@ public class AtlasMapPanel
                             log.info( "Feature distance: " + featureDistance );
                             if (featureDistance < distance.get()) {
                                 distance.set( featureDistance );
-                                hovered = Pair.of( feature, afl.get().layer() );
+                                hovered = Pair.of( feature, afl.layer() );
                             }
                         }, new NullProgressListener() );
                         log.info( "Task: " + layer.label.get() + " -> " + timer.elapsedTime() + "ms" );
@@ -315,19 +316,19 @@ public class AtlasMapPanel
                     catch (Exception e) {
                         throw new RuntimeException( e );
                     }
-                }
-            }));
+                }));
+            }
         }
-        // wait for all tasks to complete
-        try {
-            Thread.sleep( 3000 );
-            log.info( "go on..." );
-        }
-        catch (InterruptedException e1) {
-        }
+//        // wait for all tasks to complete
+//        try {
+//            Thread.sleep( 3000 );
+//            log.info( "go on..." );
+//        }
+//        catch (InterruptedException e1) {
+//        }
         tasks.forEach( task -> {
             try { task.get(); }
-            catch (InterruptedException | ExecutionException e) { throw new RuntimeException( e ); }
+            catch (Exception e) { Throwables.propagate( e ); }
         });
         if (hovered != null) {
             hoverLayer.source.get().addFeature( new OlFeature()
