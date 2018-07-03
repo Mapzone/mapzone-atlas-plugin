@@ -16,18 +16,20 @@ package io.mapzone.atlas;
 
 import static org.polymap.core.data.DataPlugin.ff;
 
-import org.geotools.data.Query;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.geotools.referencing.CRS;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.filter.Filter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import org.polymap.core.project.ILayer;
 import org.polymap.core.runtime.config.Concern;
 import org.polymap.core.runtime.config.Config;
-import org.polymap.core.runtime.config.ConfigurationFactory;
-
+import org.polymap.core.runtime.config.Configurable;
 import org.polymap.p4.layer.FeatureLayer;
 
 /**
@@ -35,9 +37,12 @@ import org.polymap.p4.layer.FeatureLayer;
  *
  * @author Falko Bräutigam
  */
-public class AtlasQuery {
+public class AtlasQuery
+        extends Configurable {
 
-    public static final AtlasQuery   TYPE = new AtlasQuery();
+    private static final Log log = LogFactory.getLog( AtlasQuery.class );
+    
+    public static final AtlasQuery      TYPE = new AtlasQuery();
 
     @Concern( PropertyChangeEvent.Fire.class )
     public Config<String>               queryText;
@@ -46,28 +51,35 @@ public class AtlasQuery {
     public Config<ReferencedEnvelope>   mapExtent;
 
 
-    /** Constructs a new instance with no restrictions. */
-    protected AtlasQuery() {
-        ConfigurationFactory.inject( this );
-    }
+//    /** Constructs a new instance with no restrictions. */
+//    protected AtlasQuery() {
+//        ConfigurationFactory.inject( this );
+//    }
 
     
-    public Query build( ILayer layer ) throws Exception {
-        Filter extentFilter = extentFilterOf( layer );
+    public Filter build( ILayer layer, CoordinateReferenceSystem crs ) throws Exception {
+        Filter extentFilter = extentFilterOf( crs );
         Filter textFilter = fulltextFilterOf( layer );
-        return new Query( "", ff.and( extentFilter, textFilter ) );
+        return ff.and( extentFilter, textFilter );
     }
 
 
     /**
      *
      */
-    protected Filter extentFilterOf( ILayer layer ) throws Exception {
+    protected Filter extentFilterOf( CoordinateReferenceSystem crs ) throws Exception {
         Filter extentFilter = Filter.INCLUDE;
         if (mapExtent.isPresent()) {
-            CoordinateReferenceSystem layerCrs = FeatureLayer.of( layer ).get().get().featureSource().getSchema().getCoordinateReferenceSystem();
-            ReferencedEnvelope transformed = mapExtent.get().transform( layerCrs, true );
-            extentFilter = ff.bbox( ff.property( "" ), transformed );
+            try {
+                ReferencedEnvelope transformed = mapExtent.get().transform( crs, true );
+                extentFilter = ff.bbox( ff.property( "" ), transformed );
+            }
+            catch (Exception e) {
+                // mapExtent is not yet properly set
+                log.warn( "CRS: " + CRS.toSRS( crs ) + " -- " + e.getLocalizedMessage() );
+                log.warn( "   mapExtent: " + mapExtent.get() );
+                log.warn( "       valid: " + crs.getDomainOfValidity() );
+            }
         }
         return extentFilter;
     }
@@ -76,12 +88,13 @@ public class AtlasQuery {
     /**
      *
      */
-    public Filter fulltextFilterOf( ILayer layer ) throws Exception {
+    protected Filter fulltextFilterOf( ILayer layer ) throws Exception {
         Filter textFilter = Filter.INCLUDE;
         if (queryText.isPresent() /*&& mapExtent.isPresent()*/) {
 //            AtlasIndex index = AtlasIndex.instance();
 //            textFilter = index.query( queryText.get(), layer );
             
+            // simple all-string-properties search
             textFilter = Filter.EXCLUDE;
             SimpleFeatureType schema = FeatureLayer.of( layer ).get().get().featureSource().getSchema();
             for (AttributeDescriptor attr : schema.getAttributeDescriptors()) {

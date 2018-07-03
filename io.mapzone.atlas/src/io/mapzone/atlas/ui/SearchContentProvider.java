@@ -90,8 +90,11 @@ public class SearchContentProvider
     
     
     public SearchContentProvider() {
-        EventManager.instance().subscribe( this, ifType( PropertyChangeEvent.class, ev -> 
-                ev.getSource() instanceof AtlasQuery ) );
+        EventManager.instance().subscribe( this, ifType( PropertyChangeEvent.class, ev -> { 
+            Config prop = ev.prop.get();
+            // XXX don't listen to extent as long as transform does not work
+            return prop.equals( AtlasQuery.TYPE.queryText );
+        }));
     }
     
     @Override

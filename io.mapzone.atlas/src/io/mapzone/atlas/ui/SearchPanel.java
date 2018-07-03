@@ -126,7 +126,8 @@ public class SearchPanel
         
         // searchText
         searchText = tk().createActionText( parent, "" )
-                .performOnEnter.put( false );
+                .performOnEnter.put( false )
+                .performDelayMillis.put( 1000 );
         new TextActionItem( searchText, Type.DEFAULT )
                 .action.put( ev -> doSearch() )
                 .text.put( "Suchen..." )
@@ -289,10 +290,15 @@ public class SearchPanel
                             Optional<Integer> polled = contentProvider.cachedChildCount( layer );
                             if (polled.isPresent()) {
                                 UIThreadExecutor.async( () -> { 
-                                    cell.setText( layerLabel + " (" + polled.get() + ")" );
-                                    if (AtlasFeatureLayer.of( layer ).visible.get()) {
-                                        log.info( "expand: " + layer.label.get() );
-                                        list.expandToLevel( layer, 1 );
+                                    try {
+                                        cell.setText( layerLabel + " (" + polled.get() + ")" );
+                                        if (AtlasFeatureLayer.of( layer ).visible.get()) {
+                                            log.info( "expand: " + layer.label.get() );
+                                            list.expandToLevel( layer, 1 );
+                                        }
+                                    }
+                                    catch (SWTException e) {
+                                        log.warn( e.getLocalizedMessage() );
                                     }
                                     return null;
                                 });
@@ -307,7 +313,7 @@ public class SearchPanel
                 new ScriptJob( (Feature)elm, LayerSheet.TITLE, text -> { 
                     // widget is disposed because of async job
                     try { cell.setText( text ); }
-                    catch (SWTException e) { log.info( e.getLocalizedMessage() ); }
+                    catch (SWTException e) { log.warn( e.getLocalizedMessage() ); }
                 });
             }
             else {
@@ -339,7 +345,7 @@ public class SearchPanel
                 new ScriptJob( (Feature)elm, LayerSheet.DESCRIPTION, text -> {
                     // widget is disposed because of async job
                     try { cell.setText( text ); }
-                    catch (SWTException e) { log.info( e.getLocalizedMessage() ); }
+                    catch (SWTException e) { log.warn( e.getLocalizedMessage() ); }
                 });
             }
             else {

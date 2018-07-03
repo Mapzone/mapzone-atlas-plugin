@@ -12,15 +12,19 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
  */
-package io.mapzone.atlas.ui;
+package io.mapzone.atlas;
 
 import java.util.List;
+
 import org.geotools.data.DataAccess;
 import org.geotools.data.Query;
 import org.opengis.filter.Filter;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import com.google.common.collect.Lists;
 
 import org.polymap.core.data.DataPlugin;
 import org.polymap.core.data.feature.DefaultFeaturesProcessor;
@@ -34,10 +38,12 @@ import org.polymap.core.data.feature.GetFeaturesSizeRequest;
 import org.polymap.core.data.feature.GetFeaturesSizeResponse;
 import org.polymap.core.data.feature.ModifyFeaturesResponse;
 import org.polymap.core.data.feature.TransactionResponse;
+import org.polymap.core.data.image.cache304.ImageCacheProcessor;
 import org.polymap.core.data.pipeline.Consumes;
 import org.polymap.core.data.pipeline.DataSourceDescriptor;
 import org.polymap.core.data.pipeline.EndOfProcessing;
 import org.polymap.core.data.pipeline.Param;
+import org.polymap.core.data.pipeline.Pipeline;
 import org.polymap.core.data.pipeline.PipelineBuilder;
 import org.polymap.core.data.pipeline.PipelineBuilderConcernAdapter;
 import org.polymap.core.data.pipeline.PipelineExecutor.ProcessorContext;
@@ -50,24 +56,24 @@ import org.polymap.core.project.ILayer;
 
 import org.polymap.p4.project.ProjectRepository;
 
-import io.mapzone.atlas.AtlasFeatureLayer;
-
 /**
  * Add {@link AtlasFeatureLayer#fulltextFilter()} to the layer filter.
  *
  * @author Falko Bräutigam
  */
-public class FulltextFilterProcessor
+public class AtlasQueryFilterProcessor
         extends DefaultFeaturesProcessor {
 
-    private static final Log log = LogFactory.getLog( FulltextFilterProcessor.class );
+    private static final Log log = LogFactory.getLog( AtlasQueryFilterProcessor.class );
 
     public static final Param<ILayer>       PARAM_LAYER = new Param( "layer", ILayer.class );
     
+    
     /**
-     * 
+     * Adds a {@link AtlasQueryFilterProcessor} to each and every
+     * {@link FeaturesProducer} pipeline.
      */
-    public static class FulltextFilterPipelineBuilderConcern
+    public static class AtlasQueryFilterPipelineBuilderConcern
             extends PipelineBuilderConcernAdapter {
 
         private DataSourceDescriptor                dsd;
@@ -94,14 +100,25 @@ public class FulltextFilterProcessor
 //                    
 //                    Optional<AtlasFeatureLayer> afl = AtlasFeatureLayer.of( layer ).get();
 //                    if (afl.isPresent()) {
-                        chain.add( 0, new ProcessorDescriptor( FulltextFilterProcessor.class, null ) );
+                        chain.add( 0, new ProcessorDescriptor( AtlasQueryFilterProcessor.class, null ) );
 //                    }
                     
-                    // TODO remove potential ImageCache
                 }
             }
             catch (Exception e) {
                 throw new RuntimeException( e );
+            }
+        }
+
+        @Override
+        public void postBuild( PipelineBuilder builder, Pipeline pipeline ) {
+            for (ProcessorDescriptor d : Lists.newArrayList( pipeline )) {
+                if (ImageCacheProcessor.class.isAssignableFrom( d.processorType() )) {
+                    if (!pipeline.remove( d )) {
+                        throw new IllegalStateException( "Unable to remove: " + d );
+                    }
+                    log.info( "ImageCache removed from pipeline!" );
+                }
             }
         }
     }
@@ -109,7 +126,9 @@ public class FulltextFilterProcessor
     
     // instance *******************************************
     
-    private ILayer          layer;
+    private ILayer                      layer;
+
+    private CoordinateReferenceSystem   layerCrs;
 
 
     @Override
@@ -118,11 +137,11 @@ public class FulltextFilterProcessor
 //        layer = (ILayer)site.params().get( "layer" );
     }
 
-    
+
     protected Query adapt( Query query ) throws Exception {
         Filter orig = query.getFilter();
-        //Filter atlas = AtlasFeatureLayer.sessionQuery().build( layer ).getFilter();
-        Filter atlas = AtlasFeatureLayer.sessionQuery().fulltextFilterOf( layer );
+        //Filter text = AtlasFeatureLayer.sessionQuery().fulltextFilterOf( layer );
+        Filter atlas = AtlasFeatureLayer.sessionQuery().build( layer, layerCrs );
 
         Query adapted = new Query( query );
         adapted.setFilter( DataPlugin.ff.and( orig, atlas ) );
@@ -152,6 +171,9 @@ public class FulltextFilterProcessor
     @Produces( {TransactionResponse.class, ModifyFeaturesResponse.class, GetBoundsResponse.class, GetFeaturesSizeResponse.class, GetFeatureTypeResponse.class, GetFeaturesResponse.class, EndOfProcessing.class} )
     @Consumes( {TransactionResponse.class, ModifyFeaturesResponse.class, GetBoundsResponse.class, GetFeaturesSizeResponse.class, GetFeatureTypeResponse.class, GetFeaturesResponse.class, EndOfProcessing.class} )
     public void handleResponse( ProcessorResponse response, ProcessorContext context ) throws Exception {
+        if (response instanceof GetFeatureTypeResponse) {
+            layerCrs = ((GetFeatureTypeResponse)response).getFeatureType().getCoordinateReferenceSystem();
+        }
         context.sendResponse( response );
     }
     

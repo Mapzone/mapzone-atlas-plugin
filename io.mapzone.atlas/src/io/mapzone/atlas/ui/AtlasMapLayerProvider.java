@@ -18,9 +18,18 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.polymap.p4.map.ProjectLayerProvider;
+import org.polymap.rap.openlayers.layer.Layer;
+import org.polymap.rap.openlayers.layer.TileLayer;
+import org.polymap.rap.openlayers.source.TileWMSSource;
+import org.polymap.rap.openlayers.source.WMSRequestParams;
+
+import io.mapzone.atlas.AtlasFeatureLayer;
+import io.mapzone.atlas.AtlasQuery;
 
 /**
- * Builds layers of {@link AtlasMapPanel#mapViewer}.
+ * Builds layers of {@link AtlasMapPanel#mapViewer}. In addition to
+ * {@link ProjectLayerProvider} this adds the TIME param which reflects the current
+ * {@link AtlasQuery}, so that
  *
  * @author Falko Bräutigam
  */
@@ -29,31 +38,25 @@ public class AtlasMapLayerProvider
 
     private static final Log log = LogFactory.getLog( AtlasMapLayerProvider.class );
 
-//    @Override
-//    protected Pipeline createPipeline( String layerName ) {
-//        try {
-//            ILayer layer = layers.get( layerName );
-//            Pipeline pipeline = super.createPipeline( layerName );
-//
-//            // AtlasFeatureLayer?
-//            Optional<AtlasFeatureLayer> afl = AtlasFeatureLayer.of( layer ).get();
-//            if (afl.isPresent()) {
-//                // -> add filter processor
-//                FeatureRenderProcessor2 renderProc = (FeatureRenderProcessor2)pipeline.getLast().processor();
-//                Pipeline featurePipeline = renderProc.pipeline();
-//
-//                Map<String,Object> props = Collections.singletonMap( "layer", layer );
-//                ProcessorDescriptor filterProc = new ProcessorDescriptor( FulltextFilterProcessor.class, props );
-//                filterProc.processor().init( new PipelineProcessorSite( props ) );
-//
-//                featurePipeline.add( featurePipeline.length()-1, filterProc );
-//                log.info( "Pipeline: " + featurePipeline );
-//            }
-//            return pipeline;
-//        }
-//        catch (Exception e) {
-//            throw new RuntimeException( e );
-//        }
-//    }
     
+    @Override
+    protected Layer buildTiledLayer( String layerName, String styleHash ) {
+        AtlasQuery atlasQuery = AtlasFeatureLayer.sessionQuery();
+        String queriedHash = atlasQuery.queryText
+                .map( text -> String.valueOf( text.hashCode() ) )
+                .orElse( "default" );
+        
+        return new TileLayer()
+                .source.put( new TileWMSSource()
+                        //.tileGrid.put( new TileGrid( "ol.tilegrid.TileGrid" ) {}.tileSize.put( new Size( 1024, 1024 ) ) )
+                        .url.put( "." + alias )
+                        .params.put( new WMSRequestParams()
+                                .version.put( "1.1.1" )  // send "SRS" param
+                                .layers.put( layerName )
+                                .styles.put( styleHash )
+                                .time.put( queriedHash )
+                                .format.put( "image/png" ) ) );
+    }
+    
+
 }

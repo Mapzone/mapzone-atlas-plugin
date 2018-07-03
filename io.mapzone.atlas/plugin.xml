@@ -75,7 +75,7 @@
    <extension
          point="org.polymap.core.data.pipeline.builderConcerns">
       <listener
-            class="io.mapzone.atlas.ui.FulltextFilterProcessor$FulltextFilterPipelineBuilderConcern"
+            class="io.mapzone.atlas.AtlasQueryFilterProcessor$AtlasQueryFilterPipelineBuilderConcern"
             id="io.mapzone.atlas.FulltextFilterProcessor"
             name="FulltextFilterProcessor">
       </listener>
