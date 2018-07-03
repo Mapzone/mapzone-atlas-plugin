@@ -14,9 +14,10 @@
  */
 package io.mapzone.atlas.ui;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
 
+import org.polymap.p4.layer.FeatureLayer;
 import org.polymap.p4.map.ProjectLayerProvider;
 import org.polymap.rap.openlayers.layer.Layer;
 import org.polymap.rap.openlayers.layer.TileLayer;
@@ -36,26 +37,31 @@ import io.mapzone.atlas.AtlasQuery;
 public class AtlasMapLayerProvider
         extends ProjectLayerProvider {
 
-    private static final Log log = LogFactory.getLog( AtlasMapLayerProvider.class );
-
-    
     @Override
     protected Layer buildTiledLayer( String layerName, String styleHash ) {
-        AtlasQuery atlasQuery = AtlasFeatureLayer.sessionQuery();
-        String queriedHash = atlasQuery.queryText
-                .map( text -> String.valueOf( text.hashCode() ) )
-                .orElse( "default" );
-        
-        return new TileLayer()
-                .source.put( new TileWMSSource()
-                        //.tileGrid.put( new TileGrid( "ol.tilegrid.TileGrid" ) {}.tileSize.put( new Size( 1024, 1024 ) ) )
-                        .url.put( "." + alias )
-                        .params.put( new WMSRequestParams()
-                                .version.put( "1.1.1" )  // send "SRS" param
-                                .layers.put( layerName )
-                                .styles.put( styleHash )
-                                .time.put( queriedHash )
-                                .format.put( "image/png" ) ) );
+        try {
+            Optional<FeatureLayer> featureLayer = FeatureLayer.of( layers.get( layerName ) ).get();
+            AtlasQuery atlasQuery = AtlasFeatureLayer.sessionQuery();        
+            String queriedHash = featureLayer.isPresent()
+                    ? atlasQuery.queryText.map( text -> String.valueOf( text.hashCode() ) ).orElse( "default" )
+                    : "default";
+            
+            return new TileLayer()
+                    .source.put( new TileWMSSource()
+                            .url.put( "." + alias )
+                            .params.put( new WMSRequestParams()
+                                    .version.put( "1.1.1" )  // send "SRS" param
+                                    .layers.put( layerName )
+                                    .styles.put( styleHash )
+                                    .time.put( queriedHash )
+                                    .format.put( "image/png" ) ) )
+                    // FIXME  init visibility of feature layer should be set elsewhere
+                    // see AtlasMapContentProvider event handling
+                    .visible.put( !featureLayer.isPresent() );
+        }
+        catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException( e );
+        }
     }
     
 

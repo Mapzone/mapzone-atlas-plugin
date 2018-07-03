@@ -21,6 +21,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.google.common.collect.FluentIterable;
 import org.eclipse.jface.viewers.IStructuredContentProvider;
 import org.eclipse.jface.viewers.Viewer;
 
@@ -54,7 +55,10 @@ public class AtlasMapContentProvider
     private MapViewer           viewer;
     
     /** Last result of {@link #getElements(Object)}. */
-    private List<ILayer>        elements = new ArrayList();
+    private List<ILayer>        featureLayers = new ArrayList();
+
+    /** Last result of {@link #getElements(Object)}. */
+    private List<ILayer>        backgroundLayers = new ArrayList();
 
 
     @Override
@@ -71,15 +75,6 @@ public class AtlasMapContentProvider
             Config prop = ev.prop.get();
             return prop.equals( AtlasFeatureLayer.TYPE.visible )
                     || prop.equals( AtlasQuery.TYPE.queryText );
-            
-//            if (ev.getSource() instanceof AtlasFeatureLayer) {
-//                String layerId = ((AtlasFeatureLayer)ev.getSource()).layer().id();
-//                log.info( "Check (visible): " + ((AtlasFeatureLayer)ev.getSource()).layer().label.get() );
-//                return map.layers.stream()
-//                        .filter( l -> l.id().equals( layerId ) )
-//                        .findAny().isPresent();
-//            }
-//            return false;
         }));
     }
 
@@ -94,20 +89,20 @@ public class AtlasMapContentProvider
 
     @Override
     public Object[] getElements( Object inputElement ) {
-        elements.clear();
+        featureLayers.clear();
+        backgroundLayers.clear();
         for (ILayer layer : map.layers) {
             try {
                 AtlasFeatureLayer afl = AtlasFeatureLayer.of( layer );
-                // wait for (check) feature layer
+                // atlas/feature layer
                 if (afl.featureLayer().get().isPresent()) {
-                    if (afl.visible.get()) {
-                        elements.add( layer );
-                    }
+                    featureLayers.add( layer );
                 }
                 // background layer
                 else {
+                    // FIXME
                     if (layer.userSettings.get().visible.get()) {
-                        elements.add( layer );                        
+                        backgroundLayers.add( layer );                        
                     }
                 };
             }
@@ -115,23 +110,32 @@ public class AtlasMapContentProvider
                 log.warn( "", e ); 
             }
         }
-        return elements.toArray();
+        return FluentIterable.from( featureLayers ).append( backgroundLayers ).toArray( ILayer.class );
     }
 
 
-    @EventHandler( display=true, delay=250 )
+    @EventHandler( display=true, delay=500 )
     protected void onAtlasFeatureLayerChange( List<PropertyChangeEvent> evs ) {
-        for (PropertyChangeEvent ev : evs) {
-            Config prop = ev.prop.get();
-            if (prop.equals( AtlasFeatureLayer.TYPE.visible )) {
-                viewer.refresh();
+        // process just last event; skip previous event
+        PropertyChangeEvent ev = FluentIterable.from( evs ).last().get();
+        Config<Boolean> prop = ev.prop.get();
+
+        if (prop.equals( AtlasFeatureLayer.TYPE.visible )) {
+            viewer.setVisible( ((AtlasFeatureLayer)ev.getSource()).layer(), prop.get() );
+            //viewer.refresh();
+        }
+
+        else if (prop.equals( AtlasQuery.TYPE.queryText )) {
+            for (ILayer l : featureLayers) {
+                // refresh remove()/add() layer in order to avoid layer.refresh()
+                // so after this the layer is visible by default
+                viewer.refresh( l, true );
+                viewer.setVisible( l, AtlasFeatureLayer.of( l ).visible.get() );
             }
-            else if (prop.equals( AtlasQuery.TYPE.queryText )) {
-                elements.stream().forEach( l -> viewer.refresh( l, true ) );
-            }
-            else {
-                throw new RuntimeException( "Unhandled event property type: " + prop );
-            }
+        }
+
+        else {
+            throw new RuntimeException( "Unhandled event property type: " + prop );
         }
     }
     
