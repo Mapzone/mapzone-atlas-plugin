@@ -26,6 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import com.google.common.base.Joiner;
 
 import org.eclipse.swt.SWT;
+import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
@@ -124,20 +125,22 @@ public class SearchPanel
         parent.setLayout( FormLayoutFactory.defaults().margins( 0, 10 ).spacing( 6 ).create() );
         
         // searchText
-        searchText = tk().createActionText( parent, "" );
+        searchText = tk().createActionText( parent, "" )
+                .performOnEnter.put( false );
         new TextActionItem( searchText, Type.DEFAULT )
                 .action.put( ev -> doSearch() )
                 .text.put( "Suchen..." )
-                .tooltip.put( "Fulltext search. Use * as wildcard.<br/>&lt;ENTER&gt; starts the search." )
+                .tooltip.put( "Volltextsuche in allen Einträgen." )
                 .icon.put( AtlasPlugin.images().svgImage( "magnify.svg", SvgImageRegistryHelper.DISABLED12 ) );
-        new ClearTextAction( searchText );
+        new ClearTextAction( searchText )
+                .tooltip.put( "Suche zurücksetzen. Alle Objekte anzeigen." );
         //searchText.getText().forceFocus();
 
         // list
         list = tk().createListViewer( parent, SWT.VIRTUAL, SWT.SINGLE, SWT.FULL_SELECTION );
         list.setContentProvider( contentProvider = new SearchContentProvider() );
         list.firstLineLabelProvider.set( new TreeExpandStateDecorator( list, new SearchLabelProvider() )
-                .luminanceDelta.put( 0f ).saturationDelta.put( 0f ) );
+                .luminanceDelta.put( 5f ).saturationDelta.put( 0f ) );
         list.secondLineLabelProvider.set( new SearchDescriptionProvider() );
         list.iconProvider.set( new LayersIconProvider() );
         list.addOpenListener( ev -> { 
@@ -159,7 +162,7 @@ public class SearchPanel
 
     
     protected void doSearch() {
-        AtlasFeatureLayer.query().queryText.set( searchText.getTextText() );
+        AtlasFeatureLayer.sessionQuery().queryText.set( searchText.getTextText() );
 
 //        Envelope extent = mapExtent.get().mapExtent.get();
 //        CoordinateReferenceSystem crs = mapExtent.get().getMapCRS();
@@ -301,7 +304,11 @@ public class SearchPanel
             }
             // Feature
             else if (elm instanceof Feature) {
-                new ScriptJob( (Feature)elm, LayerSheet.TITLE, text -> cell.setText( text ) );
+                new ScriptJob( (Feature)elm, LayerSheet.TITLE, text -> { 
+                    // widget is disposed because of async job
+                    try { cell.setText( text ); }
+                    catch (SWTException e) { log.info( e.getLocalizedMessage() ); }
+                });
             }
             else {
                 throw new IllegalStateException( "Unknown element type: " + elm );
@@ -329,7 +336,11 @@ public class SearchPanel
             }
             // Feature
             else if (elm instanceof Feature) {
-                new ScriptJob( (Feature)elm, LayerSheet.DESCRIPTION, text -> cell.setText( text ) );
+                new ScriptJob( (Feature)elm, LayerSheet.DESCRIPTION, text -> {
+                    // widget is disposed because of async job
+                    try { cell.setText( text ); }
+                    catch (SWTException e) { log.info( e.getLocalizedMessage() ); }
+                });
             }
             else {
                 throw new IllegalStateException( "Unknown element type: " + elm );
@@ -351,7 +362,7 @@ public class SearchPanel
                 cell.setImage( AtlasPlugin.images().svgImage( "map-marker-multiple.svg", SvgImageRegistryHelper.NORMAL24 ) );
             }
             else /*if (elm instanceof Feature)*/ {
-                cell.setImage( AtlasPlugin.images().svgImage( "map-marker.svg", SvgImageRegistryHelper.NORMAL12 ) );
+                cell.setImage( AtlasPlugin.images().svgImage( "circle-small.svg", SvgImageRegistryHelper.DISABLED12 ) );
             }
         }
     }

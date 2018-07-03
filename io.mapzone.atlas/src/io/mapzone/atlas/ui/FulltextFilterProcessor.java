@@ -86,7 +86,7 @@ public class FulltextFilterProcessor
         }
 
         @Override
-        public void additionals( PipelineBuilder Builder, List<ProcessorDescriptor> chain ) {
+        public void additionals( PipelineBuilder builder, List<ProcessorDescriptor> chain ) {
             try {
                 if (dsd.service.get() instanceof DataAccess 
                         && FeaturesProducer.class.isAssignableFrom( usecase )) {
@@ -96,6 +96,8 @@ public class FulltextFilterProcessor
 //                    if (afl.isPresent()) {
                         chain.add( 0, new ProcessorDescriptor( FulltextFilterProcessor.class, null ) );
 //                    }
+                    
+                    // TODO remove potential ImageCache
                 }
             }
             catch (Exception e) {
@@ -119,9 +121,13 @@ public class FulltextFilterProcessor
     
     protected Query adapt( Query query ) throws Exception {
         Filter orig = query.getFilter();
-        Filter fulltext = AtlasFeatureLayer.of( layer ).fulltextFilter();
-        query.setFilter( DataPlugin.ff.and( orig, fulltext ) );
-        return query;
+        //Filter atlas = AtlasFeatureLayer.sessionQuery().build( layer ).getFilter();
+        Filter atlas = AtlasFeatureLayer.sessionQuery().fulltextFilterOf( layer );
+
+        Query adapted = new Query( query );
+        adapted.setFilter( DataPlugin.ff.and( orig, atlas ) );
+        log.info( "FILTER:" + adapted.getFilter() );
+        return adapted;
     }
     
     

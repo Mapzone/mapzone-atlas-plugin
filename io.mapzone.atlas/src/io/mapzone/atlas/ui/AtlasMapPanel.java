@@ -257,6 +257,7 @@ public class AtlasMapPanel
         OlMap.PointerEventPayload.findIn( ev ).ifPresent( payload -> {
             updateHoverLayer( payload.coordinate() );
         });
+        
         // click
         OlMap.ClickEventPayload.findIn( ev ).ifPresent( payload -> {
             updateHoverLayer( payload.coordinate() );
@@ -272,9 +273,9 @@ public class AtlasMapPanel
             Extent extent = payload.extent();
             CoordinateReferenceSystem crs = mapViewer.getMapCRS();
             ReferencedEnvelope newExtent = ReferencedEnvelope.create( 
-                    new Envelope( extent.minx, extent.maxx, extent.miny, extent.miny ), crs );
+                    new Envelope( extent.minx, extent.maxx, extent.miny, extent.maxy ), crs );
             if (!newExtent.equals( currentExtent )) {
-                AtlasFeatureLayer.query().mapExtent.set( currentExtent = newExtent );
+                AtlasFeatureLayer.sessionQuery().mapExtent.set( currentExtent = newExtent );
             }
         });
     }

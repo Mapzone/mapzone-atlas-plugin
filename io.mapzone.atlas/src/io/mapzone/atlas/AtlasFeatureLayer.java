@@ -68,8 +68,8 @@ public class AtlasFeatureLayer
      * The fulltext query and map extent commonly used to filter the features of all
      * layers of the current session.
      */
-    public static LayerQueryBuilder query() {
-        return SessionHolder.instance( SessionHolder.class ).layerQuery;
+    public static AtlasQuery sessionQuery() {
+        return SessionHolder.instance( SessionHolder.class ).atlasQuery;
     }
 
     protected static class SessionHolder
@@ -77,7 +77,7 @@ public class AtlasFeatureLayer
         
         ConcurrentMap<String,AtlasFeatureLayer> instances = new ConcurrentHashMap( 32 );
         
-        LayerQueryBuilder    layerQuery = new LayerQueryBuilder();
+        AtlasQuery                  atlasQuery = new AtlasQuery();
     }
 
     
@@ -109,14 +109,16 @@ public class AtlasFeatureLayer
         return layer;
     }
 
+    
     /**
-     * Builds a {@link Query} using the currently defined {@link #layerQuery}.
+     * Builds a {@link Filter} for this layer using the currently defined
+     * {@link #atlasQuery}.
      *
      * @return Newly created {@link Query}.
      * @throws Exception
      */
     public Filter fulltextFilter() throws Exception {
-        return query().fulltextFilter( layer() );
+        return sessionQuery().fulltextFilterOf( layer );
     }
 
 }

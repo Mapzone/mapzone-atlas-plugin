@@ -46,12 +46,12 @@ public class PropertyChangeEvent
 
     public PropertyChangeEvent( Object source ) {
         super( source );
-        assert source instanceof AtlasFeatureLayer || source instanceof LayerQueryBuilder;
+        assert source instanceof AtlasFeatureLayer || source instanceof AtlasQuery;
         ConfigurationFactory.inject( this );
     }
 
     /**
-     * Result is {@link AtlasFeatureLayer} or {@link LayerQueryBuilder}.
+     * Result is {@link AtlasFeatureLayer} or {@link AtlasQuery}.
      */
     @Override
     public Object getSource() {

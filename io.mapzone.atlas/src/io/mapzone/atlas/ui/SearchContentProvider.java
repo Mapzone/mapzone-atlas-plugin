@@ -26,7 +26,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
-import org.geotools.data.Query;
 import org.opengis.feature.Feature;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -55,12 +54,12 @@ import org.polymap.core.runtime.event.EventManager;
 import org.polymap.p4.layer.FeatureLayer;
 
 import io.mapzone.atlas.AtlasFeatureLayer;
-import io.mapzone.atlas.LayerQueryBuilder;
+import io.mapzone.atlas.AtlasQuery;
 import io.mapzone.atlas.PropertyChangeEvent;
 
 /**
  * Provides {@link ILayer}s of an {@link IMap} and the features thereof. 
- * Listens to {@link PropertyChangeEvent}s fired when {@link AtlasFeatureLayer#query()}
+ * Listens to {@link PropertyChangeEvent}s fired when {@link AtlasFeatureLayer#sessionQuery()}
  * has been changed.
  *
  * @author Falko Bräutigam
@@ -92,7 +91,7 @@ public class SearchContentProvider
     
     public SearchContentProvider() {
         EventManager.instance().subscribe( this, ifType( PropertyChangeEvent.class, ev -> 
-                ev.getSource() instanceof LayerQueryBuilder ) );
+                ev.getSource() instanceof AtlasQuery ) );
     }
     
     @Override
@@ -109,8 +108,8 @@ public class SearchContentProvider
 
     @EventHandler( display=true, delay=100 )
     public void onLayerQueryChange( List<PropertyChangeEvent> evs ) {
-        flush();
-        viewer.refresh();
+        // just refresh() does not always properly reflect structural changes
+        viewer.setInput( input );  //refresh();
     }
     
     /**
@@ -186,11 +185,11 @@ public class SearchContentProvider
        updateChildrenLoading( elm );
 
        UIJob.schedule( elm.label.get(), monitor -> {
-           Query query = AtlasFeatureLayer.query().build( elm );
+//           Query query = AtlasFeatureLayer.sessionQuery().build( elm );
            
            FeatureLayer fl = FeatureLayer.of( elm ).get().get();
            PipelineFeatureSource fs = fl.featureSource();
-           Object[] children = fs.getFeatures( query ).toArray();
+           Object[] children = fs.getFeatures( /*query*/ ).toArray();
            updateChildren( elm, children, currentChildCount );               
        });
    }

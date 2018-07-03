@@ -33,7 +33,7 @@ import org.polymap.core.runtime.event.EventHandler;
 import org.polymap.core.runtime.event.EventManager;
 
 import io.mapzone.atlas.AtlasFeatureLayer;
-import io.mapzone.atlas.LayerQueryBuilder;
+import io.mapzone.atlas.AtlasQuery;
 import io.mapzone.atlas.PropertyChangeEvent;
 
 /**
@@ -70,7 +70,7 @@ public class AtlasMapContentProvider
         EventManager.instance().subscribe( this, isType( PropertyChangeEvent.class, ev -> {
             Config prop = ev.prop.get();
             return prop.equals( AtlasFeatureLayer.TYPE.visible )
-                    || prop.equals( LayerQueryBuilder.TYPE.queryText );
+                    || prop.equals( AtlasQuery.TYPE.queryText );
             
 //            if (ev.getSource() instanceof AtlasFeatureLayer) {
 //                String layerId = ((AtlasFeatureLayer)ev.getSource()).layer().id();
@@ -126,7 +126,7 @@ public class AtlasMapContentProvider
             if (prop.equals( AtlasFeatureLayer.TYPE.visible )) {
                 viewer.refresh();
             }
-            else if (prop.equals( LayerQueryBuilder.TYPE.queryText )) {
+            else if (prop.equals( AtlasQuery.TYPE.queryText )) {
                 elements.stream().forEach( l -> viewer.refresh( l, true ) );
             }
             else {
