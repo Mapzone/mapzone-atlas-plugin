@@ -15,8 +15,10 @@
 package io.mapzone.atlas.index;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+
 import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
@@ -33,6 +35,7 @@ import org.apache.commons.logging.LogFactory;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
+import com.google.common.collect.Lists;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -47,6 +50,8 @@ import org.polymap.core.project.IMap;
 import org.polymap.core.runtime.Lazy;
 import org.polymap.core.runtime.LockedLazyInit;
 import org.polymap.core.runtime.UIJob;
+import org.polymap.core.runtime.cache.Cache;
+import org.polymap.core.runtime.cache.CacheConfig;
 import org.polymap.core.runtime.session.DefaultSessionContext;
 import org.polymap.core.runtime.session.DefaultSessionContextProvider;
 import org.polymap.core.runtime.session.SessionContext;
@@ -82,7 +87,7 @@ public class AtlasIndex {
     
     private static final DefaultSessionContextProvider SESSION_PROVIDER = new DefaultSessionContextProvider();
     
-    public static final Lazy<AtlasIndex> INSTANCE = new LockedLazyInit( () -> new AtlasIndex() );
+    private static final Lazy<AtlasIndex> INSTANCE = new LockedLazyInit( () -> new AtlasIndex() );
     
     /**
      * The global instance.
@@ -103,6 +108,8 @@ public class AtlasIndex {
     private DefaultSessionContext       updateContext;
 
     private DefaultSessionContextProvider contextProvider;
+    
+    private Cache<String,List<JSONObject>> cache = CacheConfig.defaults().initSize( 128 ).createCache();
     
     
     protected AtlasIndex() {
@@ -157,12 +164,26 @@ public class AtlasIndex {
     public Filter query( String query, ILayer layer ) throws Exception {
         Filter filter = Filter.INCLUDE;
         if (!StringUtils.isBlank( query )) {
-            Set<FeatureId> fids = FluentIterable.from( index.search( query, -1 ) )
+            Set<FeatureId> fids = FluentIterable.from( search( query, -1 ) )
                     .transform( json -> DataPlugin.ff.featureId( json.getString( FulltextIndex.FIELD_ID ) ) )
                     .toSet();
             filter = !fids.isEmpty() ? DataPlugin.ff.id( fids ) : Filter.EXCLUDE;
         }
         return filter;
+    }
+    
+    
+    protected List<JSONObject> search( String query, int maxResults ) {
+        return cache.get( query, key -> {
+            try {
+                Iterable<JSONObject> rs = index.search( query, maxResults );
+                return Lists.newArrayList( rs );
+            }
+            catch (Exception e) {
+                log.warn( "", e );
+                return Collections.EMPTY_LIST;
+            }
+        });
     }
     
     

@@ -30,7 +30,10 @@ import org.polymap.core.project.ILayer;
 import org.polymap.core.runtime.config.Concern;
 import org.polymap.core.runtime.config.Config;
 import org.polymap.core.runtime.config.Configurable;
+
 import org.polymap.p4.layer.FeatureLayer;
+
+import io.mapzone.atlas.index.AtlasIndex;
 
 /**
  * There is just one instance per session, returned by {@link AtlasFeatureLayer#sessionQuery()}.
@@ -51,12 +54,6 @@ public class AtlasQuery
     public Config<ReferencedEnvelope>   mapExtent;
 
 
-//    /** Constructs a new instance with no restrictions. */
-//    protected AtlasQuery() {
-//        ConfigurationFactory.inject( this );
-//    }
-
-    
     public Filter build( ILayer layer, CoordinateReferenceSystem crs ) throws Exception {
         Filter extentFilter = extentFilterOf( crs );
         Filter textFilter = fulltextFilterOf( layer );
@@ -91,9 +88,20 @@ public class AtlasQuery
     protected Filter fulltextFilterOf( ILayer layer ) throws Exception {
         Filter textFilter = Filter.INCLUDE;
         if (queryText.isPresent() /*&& mapExtent.isPresent()*/) {
-//            AtlasIndex index = AtlasIndex.instance();
-//            textFilter = index.query( queryText.get(), layer );
-            
+            AtlasIndex index = AtlasIndex.instance();
+            textFilter = index.query( queryText.get(), layer );
+        }
+        return textFilter;
+    }
+
+   
+    /**
+     * The simple *isLike* over all String attributes. For testing. 
+     */
+    protected Filter isLikeFilterOf( ILayer layer ) throws Exception {
+        Filter textFilter = Filter.INCLUDE;
+        if (queryText.isPresent() /*&& mapExtent.isPresent()*/) {
+
             // simple all-string-properties search
             textFilter = Filter.EXCLUDE;
             SimpleFeatureType schema = FeatureLayer.of( layer ).get().get().featureSource().getSchema();
@@ -105,5 +113,5 @@ public class AtlasQuery
         }
         return textFilter;
     }
-    
+
 }

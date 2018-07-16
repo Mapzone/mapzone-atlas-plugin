@@ -61,6 +61,7 @@ import org.polymap.rhei.batik.toolkit.TextActionItem;
 import org.polymap.rhei.batik.toolkit.TextActionItem.Type;
 import org.polymap.rhei.batik.toolkit.md.MdListViewer;
 import org.polymap.rhei.batik.toolkit.md.TreeExpandStateDecorator;
+import org.polymap.rhei.fulltext.ui.FulltextProposal;
 
 import org.polymap.model2.test.Timer;
 import org.polymap.p4.P4Panel;
@@ -68,6 +69,7 @@ import org.polymap.p4.layer.FeatureClickEvent;
 import org.polymap.p4.layer.FeatureLayer;
 import io.mapzone.atlas.AtlasFeatureLayer;
 import io.mapzone.atlas.AtlasPlugin;
+import io.mapzone.atlas.index.AtlasIndex;
 import io.mapzone.atlas.sheet.MarkdownScriptSheet;
 import io.mapzone.atlas.sheet.MarkdownScriptSheet.LayerSheet;
 
@@ -126,7 +128,7 @@ public class SearchPanel
         
         // searchText
         searchText = tk().createActionText( parent, "" )
-                .performOnEnter.put( false )
+                .performOnEnter.put( true )
                 .performDelayMillis.put( 1000 );
         new TextActionItem( searchText, Type.DEFAULT )
                 .action.put( ev -> doSearch() )
@@ -135,6 +137,7 @@ public class SearchPanel
                 .icon.put( AtlasPlugin.images().svgImage( "magnify.svg", SvgImageRegistryHelper.DISABLED12 ) );
         new ClearTextAction( searchText )
                 .tooltip.put( "Suche zurücksetzen. Alle Objekte anzeigen." );
+        new FulltextProposal( AtlasIndex.instance().index(), searchText.getText() );
         //searchText.getText().forceFocus();
 
         // list
