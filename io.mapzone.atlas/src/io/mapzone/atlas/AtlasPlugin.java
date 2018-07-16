@@ -68,19 +68,16 @@ public class AtlasPlugin
 
     public SvgImageRegistryHelper   images = new SvgImageRegistryHelper( this );
 
-    private ServiceTracker httpServiceTracker;
+    private ServiceTracker          httpServiceTracker;
 
 
     public void start( BundleContext context ) throws Exception {
         super.start( context );
         instance = this;
         
+        // start indexer
         AtlasIndex atlasIndex = AtlasIndex.instance();
         log.info( "Index size: " + byteCountToDisplaySize( atlasIndex.sizeInByte() ) );
-        if (atlasIndex.index().isEmpty()) {
-            log.warn( "Index update commented out!" );
-            //atlasIndex.update();
-        }
         
         // register HTTP resource
         httpServiceTracker = new ServiceTracker( context, HttpService.class.getName(), null ) {

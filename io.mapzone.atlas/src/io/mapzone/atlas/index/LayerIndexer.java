@@ -25,7 +25,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import org.eclipse.core.runtime.IProgressMonitor;
-
 import org.polymap.core.project.ILayer;
 import org.polymap.core.runtime.UIJob;
 
@@ -58,18 +57,6 @@ class LayerIndexer
     }
 
 
-//    @Override
-//    protected IStatus run( IProgressMonitor monitor ) {
-//        try {
-//            runWithException( monitor );
-//            return monitor.isCanceled() ? Status.CANCEL_STATUS : Status.OK_STATUS;
-//        }
-//        catch (Exception e) {
-//            throw new RuntimeException( e );
-//        }
-//    }
-
-    
     @Override
     protected void runWithException( IProgressMonitor monitor ) throws Exception {
         Optional<FeatureLayer> fl = FeatureLayer.of( layer ).get();

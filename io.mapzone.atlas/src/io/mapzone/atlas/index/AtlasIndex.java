@@ -1,6 +1,6 @@
 /* 
  * polymap.org
- * Copyright (C) 2017, the @authors. All rights reserved.
+ * Copyright (C) 2017-2018, the @authors. All rights reserved.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -17,11 +17,9 @@ package io.mapzone.atlas.index;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicReference;
-
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 
 import org.geotools.data.FeatureSource;
 import org.json.JSONObject;
@@ -33,14 +31,22 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.FluentIterable;
+
+import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.core.runtime.IStatus;
+import org.eclipse.core.runtime.Status;
+import org.eclipse.core.runtime.jobs.Job;
 
 import org.polymap.core.CorePlugin;
 import org.polymap.core.data.DataPlugin;
+import org.polymap.core.data.feature.storecache.StoreCacheProcessor;
 import org.polymap.core.project.ILayer;
-import org.polymap.core.runtime.FutureJobAdapter;
+import org.polymap.core.project.IMap;
 import org.polymap.core.runtime.Lazy;
 import org.polymap.core.runtime.LockedLazyInit;
+import org.polymap.core.runtime.UIJob;
 import org.polymap.core.runtime.session.DefaultSessionContext;
 import org.polymap.core.runtime.session.DefaultSessionContextProvider;
 import org.polymap.core.runtime.session.SessionContext;
@@ -50,12 +56,21 @@ import org.polymap.rhei.fulltext.indexing.FeatureTransformer;
 import org.polymap.rhei.fulltext.indexing.LowerCaseTokenFilter;
 import org.polymap.rhei.fulltext.indexing.ToStringTransformer;
 import org.polymap.rhei.fulltext.store.lucene.LuceneFulltextIndex;
+import org.polymap.rhei.fulltext.update.UpdateableFulltextIndex;
+import org.polymap.rhei.fulltext.update.UpdateableFulltextIndex.Updater;
+
+import org.polymap.model2.runtime.UnitOfWork;
+import org.polymap.p4.project.ProjectRepository;
 
 import io.mapzone.atlas.AtlasPlugin;
 
 /**
  * Provides a {@link FulltextIndex} of the content of the features of all Atlas
  * {@link ILayer}s.
+ * <p/>
+ * The index is {@link #RECREATE_TIMEOUT periodically} re-created by the
+ * {@link IndexerJob} which runs inside its own {@link #SESSION_PROVIDER session
+ * context}.
  *
  * @author Falko Bräutigam
  */
@@ -63,22 +78,27 @@ public class AtlasIndex {
 
     private static final Log log = LogFactory.getLog( AtlasIndex.class );
     
-    private static final DefaultSessionContextProvider    sessionProvider = new DefaultSessionContextProvider();
+    private static final Duration RECREATE_TIMEOUT = Duration.ofMinutes( 60 );
     
-    public static final Lazy<AtlasIndex> instance = new LockedLazyInit( () -> new AtlasIndex() );
+    private static final DefaultSessionContextProvider SESSION_PROVIDER = new DefaultSessionContextProvider();
     
+    public static final Lazy<AtlasIndex> INSTANCE = new LockedLazyInit( () -> new AtlasIndex() );
+    
+    /**
+     * The global instance.
+     */
     public static final AtlasIndex instance() {
-        return instance.get();
+        return INSTANCE.get();
     }
     
-    
+
     // instance ******************************************
     
     private LuceneFulltextIndex         index;
     
     private List<FeatureTransformer>    transformers = new ArrayList();
     
-    private AtomicReference<MapIndexer> mapIndexer = new AtomicReference();
+    private IndexerJob                  indexer = new IndexerJob();
 
     private DefaultSessionContext       updateContext;
 
@@ -110,6 +130,9 @@ public class AtlasIndex {
             }
         };
         SessionContext.addProvider( contextProvider );
+        
+        // start indexer
+        indexer.schedule();
     }
     
     
@@ -143,33 +166,70 @@ public class AtlasIndex {
     }
     
     
-    /**
-     * 
-     */
-    public Future update() {
-        MapIndexer job = mapIndexer.updateAndGet( current -> {
-            if (current == null) {
-                try {
-                    sessionProvider.mapContext( updateContext.getSessionKey(), true );
-                    current = new MapIndexer( this );
-                    current.schedule();
-                }
-                finally {
-                    sessionProvider.unmapContext();
-                }
-            }
-            return current;
-        });
-        return new FutureJobAdapter( job );
-    }
-    
-    
     protected JSONObject transform( Feature feature ) {
         Object result = feature;
         for (FeatureTransformer transformer : transformers) {
             result = transformer.apply( result );
         }
         return (JSONObject)result;
+    }
+    
+    
+    /**
+     * Re-creates the index. Re-schedules itself with
+     * {@link AtlasIndex#RECREATE_TIMEOUT}.
+     * <p/>
+     * The periodic update also triggers {@link StoreCacheProcessor} to update its
+     * cache. We currently do not have a async job to do this. This indexer triggers
+     * the update to be done asynchronously.
+     */
+    protected class IndexerJob
+            extends Job {
+        
+        public IndexerJob() {
+            super( "Atlas Indexer" );
+        }
+
+        @Override
+        protected IStatus run( IProgressMonitor monitor ) {
+            try {
+                SESSION_PROVIDER.mapContext( updateContext.getSessionKey(), true );
+                doIndex( monitor );
+                return monitor.isCanceled() ? Status.CANCEL_STATUS : Status.OK_STATUS;
+            }
+            catch (Exception e) {
+                log.warn( "", e );
+                throw Throwables.propagate( e );
+            }
+            finally {
+                SESSION_PROVIDER.unmapContext();
+                // re-schedule
+                schedule( RECREATE_TIMEOUT.toMillis() );
+            }
+        }
+
+
+        protected void doIndex( IProgressMonitor monitor ) throws Exception {
+            try (
+                UnitOfWork uow = ProjectRepository.newUnitOfWork();
+                Updater updater = ((UpdateableFulltextIndex)index).prepareUpdate();
+            ){
+                // start layer jobs
+                IMap map = uow.entity( IMap.class, ProjectRepository.ROOT_MAP_ID );
+                log.info( "Map: " + map.label.get() );
+                List<LayerIndexer> layerIndexers = new ArrayList();
+                for (ILayer layer : map.layers) {
+                    LayerIndexer layerIndexer = new LayerIndexer( layer, updater, AtlasIndex.this );
+                    layerIndexer.schedule();
+                    layerIndexers.add( layerIndexer );
+                }
+                // wait for layer jobs
+                UIJob.joinJobs( layerIndexers );
+
+                updater.apply();
+                log.info( "Done: " + map.label.get() );
+            }
+        }
     }
     
 }
