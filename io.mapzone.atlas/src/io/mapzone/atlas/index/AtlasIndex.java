@@ -56,7 +56,9 @@ import org.polymap.core.runtime.session.DefaultSessionContext;
 import org.polymap.core.runtime.session.DefaultSessionContextProvider;
 import org.polymap.core.runtime.session.SessionContext;
 
+import org.polymap.rhei.fulltext.FullQueryProposalDecorator;
 import org.polymap.rhei.fulltext.FulltextIndex;
+import org.polymap.rhei.fulltext.LogQueryDecorator;
 import org.polymap.rhei.fulltext.indexing.FeatureTransformer;
 import org.polymap.rhei.fulltext.indexing.LowerCaseTokenFilter;
 import org.polymap.rhei.fulltext.indexing.ToStringTransformer;
@@ -143,8 +145,13 @@ public class AtlasIndex {
     }
     
     
-    public FulltextIndex index() {
-        return index;
+    /**
+     * The {@link FulltextIndex} used for proposals/querying the index.
+     */
+    public FulltextIndex queryDecoratedIndex() {
+        return new FullQueryProposalDecorator( 
+                new LowerCaseTokenFilter( 
+                new LogQueryDecorator( index ) ) );
     }
 
     

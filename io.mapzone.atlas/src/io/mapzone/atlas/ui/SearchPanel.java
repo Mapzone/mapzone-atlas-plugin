@@ -129,16 +129,17 @@ public class SearchPanel
         // searchText
         searchText = tk().createActionText( parent, "" )
                 .performOnEnter.put( true )
-                .performDelayMillis.put( 1000 );
+                .performDelayMillis.put( 1000 )
+                .textHint.put( "Suchen...");
         new TextActionItem( searchText, Type.DEFAULT )
                 .action.put( ev -> doSearch() )
-                .text.put( "Suchen..." )
-                .tooltip.put( "Volltextsuche in allen Einträgen." )
+                .tooltip.put( "Suchen in allen Einträgen." )
                 .icon.put( AtlasPlugin.images().svgImage( "magnify.svg", SvgImageRegistryHelper.DISABLED12 ) );
         new ClearTextAction( searchText )
                 .tooltip.put( "Suche zurücksetzen. Alle Objekte anzeigen." );
-        new FulltextProposal( AtlasIndex.instance().index(), searchText.getText() );
-        //searchText.getText().forceFocus();
+        new FulltextProposal( AtlasIndex.instance().queryDecoratedIndex(), searchText.getText() )
+                .eventOnAccept.put( true );
+        searchText.getText().setFont( UIUtils.bold( searchText.getText().getFont() ) );
 
         // list
         list = tk().createListViewer( parent, SWT.VIRTUAL, SWT.SINGLE, SWT.FULL_SELECTION );

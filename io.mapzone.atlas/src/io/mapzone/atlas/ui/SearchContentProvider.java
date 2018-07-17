@@ -26,6 +26,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+
+import java.io.IOException;
+
 import org.opengis.feature.Feature;
 
 import org.apache.commons.lang3.ArrayUtils;
@@ -157,45 +160,55 @@ public class SearchContentProvider
 
 
     /**
-    *
-    */
-   protected void updateMap( IMap elm, int currentChildCount ) {
-       updateChildrenLoading( elm );
-       
-       ConcurrentMap<String,ILayer> children = new ConcurrentSkipListMap();
-       List<CompletableFuture> tasks = new ArrayList();
-       for (ILayer layer : elm.layers) {
-           AtlasFeatureLayer afl = AtlasFeatureLayer.of( layer );
-           tasks.add( afl.featureLayer().thenAccept( fl -> {
-               if (fl.isPresent()) {
-                   children.put( layer.label.get(), layer );
-               }
-           }));
-       };
-       tasks.forEach( task -> {
-           try { task.get(); }
-           catch (Exception e) { Throwables.propagate( e ); }
-       });
-       
-       updateChildren( elm, children.values().toArray(), currentChildCount );
-   }
+     *
+     */
+    protected void updateMap( IMap elm, int currentChildCount ) {
+        updateChildrenLoading( elm );
+
+        // start tasks
+        ConcurrentMap<String,ILayer> children = new ConcurrentSkipListMap();
+        List<CompletableFuture> tasks = new ArrayList();
+        for (ILayer layer : elm.layers) {
+            AtlasFeatureLayer afl = AtlasFeatureLayer.of( layer );
+            tasks.add( afl.featureLayer().thenAccept( fl -> {
+                if (fl.isPresent()) {
+                    try {
+                        // don't show layers with 0 matching features
+                        PipelineFeatureSource fs = fl.get().featureSource();
+                        if (!fs.getFeatures().isEmpty()) {
+                            children.put( layer.label.get(), layer );
+                        }
+                    }
+                    catch (IOException e) {
+                        log.warn( "", e );
+                    }
+                }
+            }));
+        };
+        // join tasks
+        tasks.forEach( task -> {
+            try { task.get(); }
+            catch (Exception e) { Throwables.propagate( e ); }
+        });
+
+        updateChildren( elm, children.values().toArray(), currentChildCount );
+    }
 
 
-   /**
-    *
-    */
-   protected void updateLayer( ILayer elm, int currentChildCount ) {
-       updateChildrenLoading( elm );
+    /**
+     *
+     */
+    protected void updateLayer( ILayer elm, int currentChildCount ) {
+        updateChildrenLoading( elm );
 
-       UIJob.schedule( elm.label.get(), monitor -> {
-//           Query query = AtlasFeatureLayer.sessionQuery().build( elm );
-           
-           FeatureLayer fl = FeatureLayer.of( elm ).get().get();
-           PipelineFeatureSource fs = fl.featureSource();
-           Object[] children = fs.getFeatures( /*query*/ ).toArray();
-           updateChildren( elm, children, currentChildCount );               
-       });
-   }
+        UIJob.schedule( elm.label.get(), monitor -> {
+            FeatureLayer fl = FeatureLayer.of( elm ).get().get();
+            PipelineFeatureSource fs = fl.featureSource();
+            // the AtlasQuery is done by AtlasQueryFilterProcessor in the pipeline
+            Object[] children = fs.getFeatures().toArray();
+            updateChildren( elm, children, currentChildCount );               
+        });
+    }
 
 
     /**
