@@ -111,6 +111,7 @@ public class SearchPanel
     @Override
     public void init() {
         super.init();
+        //site().setSize( 250, 300, Integer.MAX_VALUE );
         EventManager.instance().subscribe( this, ev -> ev instanceof FeatureClickEvent ); 
     }
 
@@ -370,10 +371,10 @@ public class SearchPanel
         public void update( ViewerCell cell ) {
             Object elm = cell.getElement();
             if (elm instanceof ILayer) {
-                cell.setImage( AtlasPlugin.images().svgImage( "map-marker-multiple.svg", SvgImageRegistryHelper.NORMAL24 ) );
+                cell.setImage( AtlasPlugin.images().svgImage( "folder-outline.svg", SvgImageRegistryHelper.NORMAL24 ) );
             }
             else /*if (elm instanceof Feature)*/ {
-                cell.setImage( AtlasPlugin.images().svgImage( "circle-small.svg", SvgImageRegistryHelper.DISABLED12 ) );
+                cell.setImage( AtlasPlugin.images().svgImage( "circle-medium.svg", SvgImageRegistryHelper.NORMAL12 ) );
             }
         }
     }

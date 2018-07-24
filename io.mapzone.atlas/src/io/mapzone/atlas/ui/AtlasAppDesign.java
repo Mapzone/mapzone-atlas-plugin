@@ -19,6 +19,7 @@ import org.eclipse.swt.widgets.Composite;
 
 import org.polymap.core.ui.FormDataFactory;
 import org.polymap.core.ui.FormLayoutFactory;
+import org.polymap.core.ui.UIUtils;
 
 import org.polymap.rhei.batik.BatikApplication;
 import org.polymap.rhei.batik.app.IAppDesign;
@@ -44,8 +45,9 @@ public class AtlasAppDesign
     protected Composite fillHeaderArea( Composite parent ) {
         Composite contents = null;
         
+        boolean isPhone = UIUtils.sessionDisplay().getClientArea().width < 800; 
         String northParam = BatikApplication.instance().getInitRequestParameter( "north" ).orElse( "on" );
-        if (northParam.equals( "on" )) {
+        if (northParam.equals( "on" ) && !isPhone) {
             contents = new Composite( parent, SWT.NO_FOCUS );
             //contents.setBackground( UIUtils.getColor( 0xff, 0xff, 0xff ) );
             contents.setLayout( FormLayoutFactory.defaults().margins( 3, 0 ).create() );
