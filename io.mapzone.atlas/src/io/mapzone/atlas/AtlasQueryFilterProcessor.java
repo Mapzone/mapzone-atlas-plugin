@@ -24,8 +24,6 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.google.common.collect.Lists;
-
 import org.polymap.core.data.DataPlugin;
 import org.polymap.core.data.feature.DefaultFeaturesProcessor;
 import org.polymap.core.data.feature.FeaturesProducer;
@@ -38,12 +36,10 @@ import org.polymap.core.data.feature.GetFeaturesSizeRequest;
 import org.polymap.core.data.feature.GetFeaturesSizeResponse;
 import org.polymap.core.data.feature.ModifyFeaturesResponse;
 import org.polymap.core.data.feature.TransactionResponse;
-import org.polymap.core.data.image.cache304.ImageCacheProcessor;
 import org.polymap.core.data.pipeline.Consumes;
 import org.polymap.core.data.pipeline.DataSourceDescriptor;
 import org.polymap.core.data.pipeline.EndOfProcessing;
 import org.polymap.core.data.pipeline.Param;
-import org.polymap.core.data.pipeline.Pipeline;
 import org.polymap.core.data.pipeline.PipelineBuilder;
 import org.polymap.core.data.pipeline.PipelineBuilderConcernAdapter;
 import org.polymap.core.data.pipeline.PipelineExecutor.ProcessorContext;
@@ -107,18 +103,6 @@ public class AtlasQueryFilterProcessor
             }
             catch (Exception e) {
                 throw new RuntimeException( e );
-            }
-        }
-
-        @Override
-        public void postBuild( PipelineBuilder builder, Pipeline pipeline ) {
-            for (ProcessorDescriptor d : Lists.newArrayList( pipeline )) {
-                if (ImageCacheProcessor.class.isAssignableFrom( d.processorType() )) {
-                    if (!pipeline.remove( d )) {
-                        throw new IllegalStateException( "Unable to remove: " + d );
-                    }
-                    log.info( "ImageCache removed from pipeline!" );
-                }
             }
         }
     }
