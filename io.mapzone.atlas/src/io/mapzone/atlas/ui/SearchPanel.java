@@ -131,12 +131,13 @@ public class SearchPanel
                 .performOnEnter.put( true )
                 .performDelayMillis.put( 1000 )
                 .textHint.put( "Suchen...");
+        new ClearTextAction( searchText )
+                .tooltip.put( "Suche zurücksetzen. Alle Objekte anzeigen." )
+                .icon.set( AtlasPlugin.images().svgImage( "close-box.svg", SvgImageRegistryHelper.NORMAL24 ) );
         new TextActionItem( searchText, Type.DEFAULT )
                 .action.put( ev -> doSearch() )
                 .tooltip.put( "Suchen in allen Einträgen." )
-                .icon.put( AtlasPlugin.images().svgImage( "magnify.svg", SvgImageRegistryHelper.DISABLED12 ) );
-        new ClearTextAction( searchText )
-                .tooltip.put( "Suche zurücksetzen. Alle Objekte anzeigen." );
+                .icon.put( AtlasPlugin.images().svgImage( "magnify.svg", SvgImageRegistryHelper.NORMAL12 ) );
         new FulltextProposal( AtlasIndex.instance().queryDecoratedIndex(), searchText.getText() )
                 .eventOnAccept.put( true );
         searchText.getText().setFont( UIUtils.bold( searchText.getText().getFont() ) );
