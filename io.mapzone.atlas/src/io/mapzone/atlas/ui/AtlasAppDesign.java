@@ -38,16 +38,22 @@ public class AtlasAppDesign
         extends MdAppDesign
         implements IAppDesign {
 
-    private static final DefaultToolkit    tk = new DefaultToolkit( null, null );
+    private static final DefaultToolkit tk = new DefaultToolkit( null, null );
+    
+    public static final int             PHONE_WIDTH = 800;
+
+    public static boolean isPhone() {
+        return UIUtils.sessionDisplay().getClientArea().width < PHONE_WIDTH; 
+    }
 
     
+    // instance *******************************************
     @Override
     protected Composite fillHeaderArea( Composite parent ) {
         Composite contents = null;
         
-        boolean isPhone = UIUtils.sessionDisplay().getClientArea().width < 800; 
         String northParam = BatikApplication.instance().getInitRequestParameter( "north" ).orElse( "on" );
-        if (northParam.equals( "on" ) && !isPhone) {
+        if (northParam.equals( "on" ) && !isPhone()) {
             contents = new Composite( parent, SWT.NO_FOCUS );
             //contents.setBackground( UIUtils.getColor( 0xff, 0xff, 0xff ) );
             contents.setLayout( FormLayoutFactory.defaults().margins( 3, 0 ).create() );
