@@ -14,19 +14,22 @@
  */
 package io.mapzone.atlas.ui;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 
+import org.geotools.styling.Style;
 import org.opengis.feature.Feature;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
+import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
@@ -38,6 +41,8 @@ import org.eclipse.jface.viewers.ViewerCell;
 
 import org.eclipse.core.runtime.IProgressMonitor;
 
+import org.polymap.core.data.feature.DefaultStyles;
+import org.polymap.core.mapeditor.MapViewer;
 import org.polymap.core.project.ILayer;
 import org.polymap.core.project.IMap;
 import org.polymap.core.runtime.UIJob;
@@ -65,8 +70,13 @@ import org.polymap.rhei.fulltext.ui.FulltextProposal;
 
 import org.polymap.model2.test.Timer;
 import org.polymap.p4.P4Panel;
+import org.polymap.p4.P4Plugin;
 import org.polymap.p4.layer.FeatureClickEvent;
 import org.polymap.p4.layer.FeatureLayer;
+import org.polymap.rap.openlayers.base.OlEvent;
+import org.polymap.rap.openlayers.view.View;
+import org.polymap.rap.openlayers.view.View.ExtentEventPayload;
+
 import io.mapzone.atlas.AtlasFeatureLayer;
 import io.mapzone.atlas.AtlasPlugin;
 import io.mapzone.atlas.index.AtlasIndex;
@@ -90,6 +100,10 @@ public class SearchPanel
     @Scope( AtlasPlugin.Scope )
     protected Context<IMap>         map;
 
+    /** Inbound: access to current map scale. */
+    @Scope( AtlasPlugin.Scope )
+    protected Context<MapViewer<ILayer>> atlasMapViewer;
+    
     private ActionText              searchText;
 
     private MdListViewer            list;
@@ -127,6 +141,20 @@ public class SearchPanel
         site().title.set( "Suchen" );
         parent.setLayout( FormLayoutFactory.defaults().margins( 0, 10 ).spacing( 6 ).create() );
         
+//        TabFolder tabFolder = new TabFolder( parent, SWT.NONE );
+//        
+//        TabItem tab1 = new TabItem( tabFolder, SWT.NONE );
+//        tab1.setText( "tab1" );
+//        Composite tab1Parent = tk().createComposite( tabFolder );
+//        tab1.setControl( tab1Parent );
+//        tk().createLabel( tab1Parent, "Inside tab1" );
+//        
+//        TabItem tab2 = new TabItem( tabFolder, SWT.NONE );
+//        tab2.setText( "tab2" );
+//        Composite tab2Parent = tk().createComposite( tabFolder );
+//        tab2.setControl( tab2Parent );
+//        tk().createLabel( tab2Parent, "Inside tab2" );
+        
         // searchText
         searchText = tk().createActionText( parent, "" )
                 .performOnEnter.put( true )
@@ -162,9 +190,33 @@ public class SearchPanel
         });
         list.setInput( map.get() );
 
+        // map events
+        View view = atlasMapViewer.get().map().view.get();
+        view.addEventListener( View.Event.RESOLUTION, this, new View.ExtentEventPayload() );
+
         // layout
         FormDataFactory.on( searchText.getControl() ).fill().height( 30 ).noBottom();
         FormDataFactory.on( list.getTree() ).fill().top( searchText.getControl() );
+    }
+
+
+    @EventHandler( display=true, delay=2500 )
+    protected void onOlEvent( List<OlEvent> evs ) {
+        if (list.getControl().isDisposed()) {
+            log.warn( "Removing handler for OL events." );
+            View view = atlasMapViewer.get().map().view.get();
+            view.removeEventListener( View.Event.RESOLUTION, this );
+        }
+        else {
+            // map extent
+            for (OlEvent ev : Lists.reverse( evs )) {
+                ExtentEventPayload payload = View.ExtentEventPayload.findIn( ev ).orElse( null );
+                if (payload != null) {
+                    list.refresh( true );
+                    break;
+                }
+            }
+        }
     }
 
     
@@ -213,8 +265,8 @@ public class SearchPanel
                     parent.getDisplay().timerExec( 500, () -> {
                         shell.layout( true, true );
                         // XXX last resort if font/text size recognition did not work
-                        log.info( "Text size: " + text.getSize() );
-                        log.info( "Shell size: " + parent.getShell().getSize() );
+                        log.debug( "Text size: " + text.getSize() );
+                        log.debug( "Shell size: " + parent.getShell().getSize() );
                         if (shell.getSize().y < 200) {
                             Point size = text.computeSize( textWidth, SWT.DEFAULT );
                             text.setLayoutData( FormDataFactory.filled().height( size.y ).width( textWidth ).create() );
@@ -230,7 +282,8 @@ public class SearchPanel
         
         new ScriptJob( f, LayerSheet.TITLE, t -> 
                 dialog.getShell().setText( StringUtils.abbreviate( t, 35 ) ) );
-        dialog.openAndBlock();
+        dialog.setBlockOnOpen( false );
+        dialog.open();
     }
     
     
@@ -370,11 +423,25 @@ public class SearchPanel
         @Override
         public void update( ViewerCell cell ) {
             Object elm = cell.getElement();
+            // ILayer
             if (elm instanceof ILayer) {
                 cell.setImage( AtlasPlugin.images().svgImage( "folder-outline.svg", SvgImageRegistryHelper.NORMAL24 ) );
             }
-            else /*if (elm instanceof Feature)*/ {
-                cell.setImage( AtlasPlugin.images().svgImage( "circle-medium.svg", SvgImageRegistryHelper.NORMAL12 ) );
+            // Feature
+            else if (elm instanceof Feature) {
+                ILayer layer = (ILayer)contentProvider.getParent( elm );
+                String styleId = layer.styleIdentifier.get();
+                Style style = P4Plugin.styleRepo().serializedFeatureStyle( styleId, Style.class )
+                        .orElse( DefaultStyles.createAllStyle() );
+                log.info( "Extent: " + atlasMapViewer.get().mapExtent.get().getWidth() );
+                double mapWidth = atlasMapViewer.get().mapExtent.get().getWidth();
+                double imageWidth = atlasMapViewer.get().getControl().getSize().x;
+                new GlyphRenderer( (Feature)elm, style, 28, mapWidth / imageWidth ).start( image -> {
+                    cell.setImage( (Image)image );
+                });
+            }
+            else {
+                log.warn( "Unsupported element type: " + elm.getClass().getSimpleName() );
             }
         }
     }
@@ -408,7 +475,7 @@ public class SearchPanel
                 MarkdownScriptSheet sheet = MarkdownScriptSheet.of( layer, layerSheet );
                 sheet.setStandardVariables( layer, feature );
                 String text = sheet.build( monitor );
-                log.info( "Script " + layerSheet + ": " + timer.elapsedTime() + "ms" );
+                log.debug( "Script " + layerSheet + ": " + timer.elapsedTime() + "ms" );
                 UIThreadExecutor.async( () -> {
                     consumer.accept( text );
                 });

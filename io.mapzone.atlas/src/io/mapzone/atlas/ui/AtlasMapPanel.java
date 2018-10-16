@@ -117,7 +117,13 @@ public class AtlasMapPanel
     @Scope( AtlasPlugin.Scope )
     protected Context<IMap>             map;
 
-    public MapViewer<ILayer>            mapViewer;
+    /**
+     * Outbound: access to current map scale.
+     */
+    @Scope( AtlasPlugin.Scope )
+    protected Context<MapViewer<ILayer>> atlasMapViewer;
+
+    private MapViewer<ILayer>           mapViewer;
 
     private ReferencedEnvelope          currentExtent;
 
@@ -203,7 +209,7 @@ public class AtlasMapPanel
         
         // mapViewer
         try {
-            mapViewer = new MapViewer( parent );
+            atlasMapViewer.set( mapViewer = new MapViewer( parent ) );
             // triggers {@link MapViewer#refresh()} on {@link ProjectNodeCommittedEvent} 
             mapViewer.contentProvider.set( new AtlasMapContentProvider() );
             mapViewer.layerProvider.set( new AtlasMapLayerProvider() );
@@ -269,7 +275,6 @@ public class AtlasMapPanel
 
         // map extent
         View.ExtentEventPayload.findIn( ev ).ifPresent( payload -> {
-            log.info( "Extent: " + payload.extent() );
             Extent extent = payload.extent();
             CoordinateReferenceSystem crs = mapViewer.getMapCRS();
             ReferencedEnvelope newExtent = ReferencedEnvelope.create( 
