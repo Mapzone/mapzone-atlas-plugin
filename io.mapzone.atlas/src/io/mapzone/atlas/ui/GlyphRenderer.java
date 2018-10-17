@@ -195,7 +195,7 @@ public class GlyphRenderer
             return f;
         }
         else {
-            System.err.println( "Machen wir später: " + geom );
+            log.warn( "(Noch) keine Normalisierung: " + geom );
             //throw new UnsupportedOperationException( "Geometry type is not supported yet: " + geom );
             return f;
         }
