@@ -129,7 +129,7 @@ public class AtlasQueryFilterProcessor
 
         Query adapted = new Query( query );
         adapted.setFilter( DataPlugin.ff.and( orig, atlas ) );
-        log.info( "FILTER:" + adapted.getFilter() );
+        log.debug( "FILTER:" + adapted.getFilter() );
         return adapted;
     }
     

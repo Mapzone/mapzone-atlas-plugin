@@ -352,7 +352,7 @@ public class SearchPanel
                                     try {
                                         cell.setText( layerLabel + " (" + polled.get() + ")" );
                                         if (AtlasFeatureLayer.of( layer ).visible.get()) {
-                                            log.info( "expand: " + layer.label.get() );
+                                            log.debug( "expand: " + layer.label.get() );
                                             list.expandToLevel( layer, 1 );
                                         }
                                     }
@@ -433,7 +433,7 @@ public class SearchPanel
                 String styleId = layer.styleIdentifier.get();
                 Style style = P4Plugin.styleRepo().serializedFeatureStyle( styleId, Style.class )
                         .orElse( DefaultStyles.createAllStyle() );
-                log.info( "Extent: " + atlasMapViewer.get().mapExtent.get().getWidth() );
+                log.debug( "Extent: " + atlasMapViewer.get().mapExtent.get().getWidth() );
                 double mapWidth = atlasMapViewer.get().mapExtent.get().getWidth();
                 double imageWidth = atlasMapViewer.get().getControl().getSize().x;
                 new GlyphRenderer( (Feature)elm, style, 28, mapWidth / imageWidth ).start( image -> {

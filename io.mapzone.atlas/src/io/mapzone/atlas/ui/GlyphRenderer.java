@@ -175,7 +175,7 @@ public class GlyphRenderer
         
         // result
         ImageData imageData = convertToSWT( result );
-        log.info( "Glyph renderer: " + t.elapsedTime() + "ms" );
+        log.debug( "Glyph renderer: " + t.elapsedTime() + "ms" );
         UIThreadExecutor.async( () -> {
             consumer.accept( new Image( UIUtils.sessionDisplay(), imageData ) );
             return null;
@@ -195,7 +195,7 @@ public class GlyphRenderer
             return f;
         }
         else {
-            log.warn( "(Noch) keine Normalisierung: " + geom );
+            log.debug( "(Noch) keine Normalisierung: " + geom );
             //throw new UnsupportedOperationException( "Geometry type is not supported yet: " + geom );
             return f;
         }
