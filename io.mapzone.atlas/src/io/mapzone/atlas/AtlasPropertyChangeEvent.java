@@ -32,10 +32,10 @@ import org.polymap.core.runtime.event.EventManager;
  *
  * @author Falko Bräutigam
  */
-public class PropertyChangeEvent
+public class AtlasPropertyChangeEvent
         extends EventObject {
 
-    private static final Log log = LogFactory.getLog( PropertyChangeEvent.class );
+    private static final Log log = LogFactory.getLog( AtlasPropertyChangeEvent.class );
 
     @Mandatory @Immutable
     public Config<Config>           prop;
@@ -44,7 +44,7 @@ public class PropertyChangeEvent
     public Config<Object>           newValue;
 
 
-    public PropertyChangeEvent( Object source ) {
+    public AtlasPropertyChangeEvent( Object source ) {
         super( source );
         assert source instanceof AtlasFeatureLayer || source instanceof AtlasQuery;
         ConfigurationFactory.inject( this );
@@ -59,7 +59,7 @@ public class PropertyChangeEvent
     }
 
     /**
-     * Fires a {@link PropertyChangeEvent} when config property is modified.
+     * Fires a {@link AtlasPropertyChangeEvent} when config property is modified.
      */
     public static class Fire
             extends DefaultPropertyConcern {
@@ -72,7 +72,7 @@ public class PropertyChangeEvent
          */
         @Override
         public Object doSet( Object obj, Config prop, Object newValue ) {
-            PropertyChangeEvent ev = new PropertyChangeEvent( prop.info().getHostObject() );
+            AtlasPropertyChangeEvent ev = new AtlasPropertyChangeEvent( prop.info().getHostObject() );
             ev.prop.set( prop );
             ev.newValue.set( newValue );
             log.info( "Publishing: " + prop.info().getName() + " => " + newValue );

@@ -58,11 +58,11 @@ import org.polymap.p4.layer.FeatureLayer;
 
 import io.mapzone.atlas.AtlasFeatureLayer;
 import io.mapzone.atlas.AtlasQuery;
-import io.mapzone.atlas.PropertyChangeEvent;
+import io.mapzone.atlas.AtlasPropertyChangeEvent;
 
 /**
  * Provides {@link ILayer}s of an {@link IMap} and the features thereof. 
- * Listens to {@link PropertyChangeEvent}s fired when {@link AtlasFeatureLayer#sessionQuery()}
+ * Listens to {@link AtlasPropertyChangeEvent}s fired when {@link AtlasFeatureLayer#sessionQuery()}
  * has been changed.
  *
  * @author Falko Bräutigam
@@ -93,7 +93,7 @@ public class SearchContentProvider
     
     
     public SearchContentProvider() {
-        EventManager.instance().subscribe( this, ifType( PropertyChangeEvent.class, ev -> { 
+        EventManager.instance().subscribe( this, ifType( AtlasPropertyChangeEvent.class, ev -> { 
             Config prop = ev.prop.get();
             // XXX don't listen to extent as long as transform does not work
             return prop.equals( AtlasQuery.TYPE.queryText );
@@ -113,7 +113,7 @@ public class SearchContentProvider
     }
 
     @EventHandler( display=true, delay=100 )
-    public void onLayerQueryChange( List<PropertyChangeEvent> evs ) {
+    public void onLayerQueryChange( List<AtlasPropertyChangeEvent> evs ) {
         // just refresh() does not always properly reflect structural changes
         viewer.setInput( input );  //refresh();
     }

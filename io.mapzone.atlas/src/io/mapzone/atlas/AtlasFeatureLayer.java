@@ -87,7 +87,7 @@ public class AtlasFeatureLayer
 
     /** Layer is visible in the map. */
     @DefaultBoolean( false )
-    @Concern( PropertyChangeEvent.Fire.class )
+    @Concern( AtlasPropertyChangeEvent.Fire.class )
     public Config<Boolean>          visible;
     
     

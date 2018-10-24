@@ -47,10 +47,10 @@ public class AtlasQuery
     
     public static final AtlasQuery      TYPE = new AtlasQuery();
 
-    @Concern( PropertyChangeEvent.Fire.class )
+    @Concern( AtlasPropertyChangeEvent.Fire.class )
     public Config<String>               queryText;
 
-    @Concern( PropertyChangeEvent.Fire.class )
+    @Concern( AtlasPropertyChangeEvent.Fire.class )
     public Config<ReferencedEnvelope>   mapExtent;
 
 

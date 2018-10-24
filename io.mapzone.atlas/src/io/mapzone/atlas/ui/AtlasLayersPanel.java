@@ -145,7 +145,7 @@ public class AtlasLayersPanel
     
         public LayerVisibleAction() {
             super( P4Plugin.images().svgImage( "eye.svg", NORMAL24 ),
-                    BatikPlugin.images().svgImage( "checkbox-blank-circle-outline.svg", NORMAL24 ) );
+                    BatikPlugin.images().svgImage( "checkbox-blank-outline.svg", NORMAL24 ) );
         }
 
         @Override

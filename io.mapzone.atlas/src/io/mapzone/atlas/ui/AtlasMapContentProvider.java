@@ -18,6 +18,9 @@ import static org.polymap.core.runtime.event.TypeEventFilter.*;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import java.beans.PropertyChangeEvent;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -27,6 +30,7 @@ import org.eclipse.jface.viewers.Viewer;
 
 import org.polymap.core.mapeditor.MapViewer;
 import org.polymap.core.project.ILayer;
+import org.polymap.core.project.ILayer.LayerUserSettings;
 import org.polymap.core.project.IMap;
 import org.polymap.core.project.ProjectNode.ProjectNodeCommittedEvent;
 import org.polymap.core.runtime.config.Config;
@@ -35,13 +39,13 @@ import org.polymap.core.runtime.event.EventManager;
 
 import io.mapzone.atlas.AtlasFeatureLayer;
 import io.mapzone.atlas.AtlasQuery;
-import io.mapzone.atlas.PropertyChangeEvent;
+import io.mapzone.atlas.AtlasPropertyChangeEvent;
 
 /**
  * Provides the content of {@link AtlasMapPanel#mapViewer}.
  * <p/>
  * This also tracks the state of the layers and triggers {@link MapViewer#refresh()}
- * on {@link ProjectNodeCommittedEvent} and {@link PropertyChangeEvent}. 
+ * on {@link ProjectNodeCommittedEvent} and {@link AtlasPropertyChangeEvent}. 
  *
  * @author <a href="http://www.polymap.de">Falko Bräutigam</a>
  */
@@ -71,11 +75,23 @@ public class AtlasMapContentProvider
         this.viewer = (MapViewer)viewer;
         
         // listen to AtlasFeatureLayer#visible
-        EventManager.instance().subscribe( this, isType( PropertyChangeEvent.class, ev -> {
+        EventManager.instance().subscribe( this, isType( AtlasPropertyChangeEvent.class, ev -> {
             Config prop = ev.prop.get();
             return prop.equals( AtlasFeatureLayer.TYPE.visible )
                     || prop.equals( AtlasQuery.TYPE.queryText );
         }));
+        
+        // listen to LayerUserSettings#visible
+        EventManager.instance().subscribe( this, ifType( PropertyChangeEvent.class, ev -> {
+            if (ev.getSource() instanceof LayerUserSettings) {
+                String layerId = ((LayerUserSettings)ev.getSource()).layerId();
+                return map.layers.stream()
+                        .filter( l -> l.id().equals( layerId ) )
+                        .findAny().isPresent();
+            }
+            return false;
+        }));
+
     }
 
     
@@ -100,14 +116,15 @@ public class AtlasMapContentProvider
                 }
                 // background layer
                 else {
+                    backgroundLayers.add( layer );
                     // FIXME
-                    if (layer.userSettings.get().visible.get()) {
-                        backgroundLayers.add( layer );                        
-                    }
+//                    if (layer.userSettings.get().visible.get()) {
+//                        viewer.setVisible( layer, false );
+//                    }
                 };
             }
             catch (Exception e) { 
-                log.warn( "", e ); 
+                log.warn( "", e );
             }
         }
         return FluentIterable.from( featureLayers ).append( backgroundLayers ).toArray( ILayer.class );
@@ -115,9 +132,9 @@ public class AtlasMapContentProvider
 
 
     @EventHandler( display=true, delay=500 )
-    protected void onAtlasFeatureLayerChange( List<PropertyChangeEvent> evs ) {
+    protected void onAtlasFeatureLayerChange( List<AtlasPropertyChangeEvent> evs ) {
         // process just last event; skip previous event
-        PropertyChangeEvent ev = FluentIterable.from( evs ).last().get();
+        AtlasPropertyChangeEvent ev = FluentIterable.from( evs ).last().get();
         Config<Boolean> prop = ev.prop.get();
 
         if (prop.equals( AtlasFeatureLayer.TYPE.visible )) {
@@ -136,6 +153,18 @@ public class AtlasMapContentProvider
 
         else {
             throw new RuntimeException( "Unhandled event property type: " + prop );
+        }
+    }
+    
+    
+    @EventHandler( display=true, delay=100 )
+    protected void onBackgroundLayerChange( List<PropertyChangeEvent> evs ) {
+        for (PropertyChangeEvent ev : evs) {
+            LayerUserSettings settings = (LayerUserSettings)ev.getSource();
+            ILayer layer = backgroundLayers.stream()
+                    .filter( l -> l.id().equals( settings.layerId() ) ).findFirst()
+                    .orElseThrow( () -> new IllegalStateException() );
+            viewer.setVisible( layer, settings.visible.get() );
         }
     }
     
