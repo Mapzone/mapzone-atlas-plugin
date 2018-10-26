@@ -40,6 +40,7 @@ import org.polymap.core.project.IMap;
 import org.polymap.core.project.ui.ProjectNodeContentProvider;
 import org.polymap.core.project.ui.ProjectNodeLabelProvider;
 import org.polymap.core.project.ui.ProjectNodeLabelProvider.PropType;
+import org.polymap.core.runtime.Streams.ExceptionCollector;
 import org.polymap.core.runtime.i18n.IMessages;
 import org.polymap.core.ui.FormDataFactory;
 import org.polymap.core.ui.FormLayoutFactory;
@@ -60,7 +61,6 @@ import org.polymap.p4.P4Plugin;
 import org.polymap.p4.layer.FeatureLayer;
 import org.polymap.rap.openlayers.layer.Layer;
 
-import io.mapzone.atlas.AtlasFeatureLayer;
 import io.mapzone.atlas.AtlasPlugin;
 import io.mapzone.atlas.Messages;
 
@@ -178,22 +178,28 @@ public class AtlasLayersPanel
         public void perform( MdListViewer viewer, Object elm ) {
             boolean toBeUnselected = isSelected( elm );
             if (toBeUnselected) {
-                boolean anyOtherVisible = map.get().layers.stream()
-                        .filter( l -> l != elm )
-                        .anyMatch( l -> AtlasFeatureLayer.of( l ).visible.get() );
+                try (ExceptionCollector<Exception> excs = new ExceptionCollector()) {
+                    boolean anyOtherVisible = map.get().layers.stream()
+                            .filter( l -> l != elm )
+                            .filter( l -> excs.check( () -> !FeatureLayer.of( l ).get().isPresent() ) )
+                            .anyMatch( l -> l.userSettings.get().visible.get() );
 
-                if (!anyOtherVisible) {
-                    tk().createSimpleDialog( "Achtung" )
-                            .addOkAction( () -> true )
-                            .setContents( parent -> {
-                                parent.setLayout( FormLayoutFactory.defaults().create() );
-                                Label text = tk().createFlowText( parent, "Eine Ebene muss immer aktiv bleiben.\n\n"
-                                        + "Aktivieren Sie zuerst eine andere Ebene,\n"
-                                        + "um diese Ebene deaktivieren zu können." );
-                                FormDataFactory.on( text ).fill().width( 300 );
-                            })
-                            .open();
-                    return;
+                    if (!anyOtherVisible) {
+                        tk().createSimpleDialog( "Achtung" )
+                                .addOkAction( () -> true )
+                                .setContents( parent -> {
+                                    parent.setLayout( FormLayoutFactory.defaults().create() );
+                                    Label text = tk().createFlowText( parent, "Eine Ebene muss immer aktiv bleiben.\n\n"
+                                            + "Aktivieren Sie zuerst eine andere Ebene,\n"
+                                            + "um diese Ebene deaktivieren zu können." );
+                                    FormDataFactory.on( text ).fill().width( 300 );
+                                })
+                                .open();
+                        return;
+                    }
+                }
+                catch (Exception e) {
+                    throw new RuntimeException( e );
                 }
             }
             super.perform( viewer, elm );
@@ -234,17 +240,15 @@ public class AtlasLayersPanel
         @Override
         public Object[] getChildren( Object elm ) {
             if (elm instanceof IMap) {
-                return ((IMap)elm).layers.stream()
-                        .filter( l -> {
-                            try {
-                                return !FeatureLayer.of( l ).get().isPresent();
-                            }
-                            catch (Exception e) {
-                                throw new RuntimeException( e );
-                            }
-                        })
+                try (ExceptionCollector<Exception> excs = new ExceptionCollector()) {
+                    return ((IMap)elm).layers.stream()
+                        .filter( l -> excs.check( () -> !FeatureLayer.of( l ).get().isPresent() ) )
                         .sorted( ILayer.ORDER_KEY_ORDERING.reversed() )
                         .collect( Collectors.toList() ).toArray();
+                }
+                catch (Exception e) {
+                    throw new RuntimeException( e );
+                }
             }
             return null;
         }
