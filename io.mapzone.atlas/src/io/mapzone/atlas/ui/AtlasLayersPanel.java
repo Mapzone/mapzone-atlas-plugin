@@ -34,6 +34,7 @@ import org.eclipse.jface.viewers.IOpenListener;
 import org.eclipse.jface.viewers.OpenEvent;
 import org.eclipse.jface.viewers.ViewerCell;
 
+import org.polymap.core.mapeditor.MapViewer;
 import org.polymap.core.project.ILayer;
 import org.polymap.core.project.IMap;
 import org.polymap.core.project.ui.ProjectNodeContentProvider;
@@ -43,6 +44,7 @@ import org.polymap.core.runtime.i18n.IMessages;
 import org.polymap.core.ui.FormDataFactory;
 import org.polymap.core.ui.FormLayoutFactory;
 import org.polymap.core.ui.SelectionAdapter;
+import org.polymap.core.ui.UIUtils;
 
 import org.polymap.rhei.batik.BatikPlugin;
 import org.polymap.rhei.batik.Context;
@@ -56,7 +58,7 @@ import org.polymap.rhei.batik.toolkit.md.MdListViewer;
 import org.polymap.p4.P4Panel;
 import org.polymap.p4.P4Plugin;
 import org.polymap.p4.layer.FeatureLayer;
-import org.polymap.p4.layer.LayerInfoPanel;
+import org.polymap.rap.openlayers.layer.Layer;
 
 import io.mapzone.atlas.AtlasFeatureLayer;
 import io.mapzone.atlas.AtlasPlugin;
@@ -76,16 +78,19 @@ public class AtlasLayersPanel
     
     protected static final IMessages    i18n = Messages.forPrefix( "AtlasLayersPanel" );
 
-
     @Mandatory
     @Scope( AtlasPlugin.Scope )
     protected Context<IMap>             map;
 
-    /** Set before opening {@link LayerInfoPanel}. */
-    @Scope( AtlasPlugin.Scope)
-    protected Context<ILayer>           selected;
+    @Scope( AtlasPlugin.Scope )
+    protected Context<MapViewer<ILayer>> atlasMapViewer;
+
+    protected ILayer                    selected;
 
     private MdListViewer                list;
+
+    /** The transparency section. */
+    private IPanelSection               section;
 
     
     @Override
@@ -112,32 +117,45 @@ public class AtlasLayersPanel
         list.firstLineLabelProvider.set( new ProjectNodeLabelProvider( PropType.Label ).abbreviate.put( 35 ) );
         list.secondLineLabelProvider.set( new ProjectNodeLabelProvider( PropType.Description ).abbreviate.put( 45 ) );
         list.iconProvider.set( new LayerIconProvider() );
-        
         list.firstSecondaryActionProvider.set( new LayerVisibleAction());
         
         list.addOpenListener( new IOpenListener() {
             @Override public void open( OpenEvent ev ) {
                 SelectionAdapter.on( ev.getSelection() ).forEach( elm -> {
-                    selected.set( (ILayer)elm );
+                    selected = (ILayer)elm;
+                    section.getControl().setEnabled( true );
                 });
             }
         });
         list.setInput( map.get() );
 
         // layer settings
-        IPanelSection section = tk().createPanelSection( parent, "Transparenz", SWT.BORDER );
+        section = tk().createPanelSection( parent, "Transparenz", SWT.BORDER );
+        section.getControl().setEnabled( false );
         section.getBody().setLayout( FormLayoutFactory.defaults().margins( 0, 8 ).create() );
         Slider slider = new Slider( section.getBody(), SWT.NONE );
-        slider.setMinimum( 0 );
-        slider.setMaximum( 100 );
-        slider.setSelection( 50 );
         FormDataFactory.on( slider ).fill().noBottom();
+        slider.setMinimum( 10 );
+        slider.setMaximum( 110 );
+        slider.setSelection( 100 );
+        slider.setIncrement( 10 );
+        slider.addSelectionListener( UIUtils.selectionListener( ev -> {
+            log.info( "Slider: " + slider.getSelection() );
+            adjustLayerOpacity( selected, slider.getSelection() );
+        }));
         
         // noBottom: avoid empty rows and lines
         FormDataFactory.on( list.getControl() ).fill().bottom( 50 );
         FormDataFactory.on( section.getControl() ).fill().top( list.getTree() );
     }
 
+    
+    protected void adjustLayerOpacity( ILayer layer, int opacity ) {
+        AtlasMapLayerProvider layerProvider = (AtlasMapLayerProvider)atlasMapViewer.get().layerProvider.get();
+        Layer olayer = layerProvider.findCreatedLayer( layer );
+        olayer.opacity.set( 0.01f * opacity );
+    }
+    
     
     /**
      * 

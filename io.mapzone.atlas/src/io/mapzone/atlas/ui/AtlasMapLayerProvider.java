@@ -14,8 +14,12 @@
  */
 package io.mapzone.atlas.ui;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+
+import com.google.common.collect.MapMaker;
+import org.polymap.core.project.ILayer;
 
 import org.polymap.p4.layer.FeatureLayer;
 import org.polymap.p4.map.ProjectLayerProvider;
@@ -30,23 +34,32 @@ import io.mapzone.atlas.AtlasQuery;
 /**
  * Builds layers of {@link AtlasMapPanel#mapViewer}. In addition to
  * {@link ProjectLayerProvider} this adds the TIME param which reflects the current
- * {@link AtlasQuery}, so that
+ * {@link AtlasQuery}, so that...
  *
  * @author Falko Bräutigam
  */
 public class AtlasMapLayerProvider
         extends ProjectLayerProvider {
 
+    private Map<String,Layer>   createdLayers = new MapMaker().concurrencyLevel( 2 ).initialCapacity( 32 ).weakValues().makeMap();
+    
+    
+    public Layer findCreatedLayer( ILayer layer ) {
+        return createdLayers.get( layer.id() );
+    }
+    
+    
     @Override
     protected Layer buildTiledLayer( String layerName, String styleHash ) {
         try {
-            Optional<FeatureLayer> featureLayer = FeatureLayer.of( layers.get( layerName ) ).get();
+            ILayer layer = layers.get( layerName );
+            Optional<FeatureLayer> featureLayer = FeatureLayer.of( layer ).get();
             AtlasQuery atlasQuery = AtlasFeatureLayer.sessionQuery();        
             String queriedHash = featureLayer.isPresent()
                     ? atlasQuery.queryText.map( text -> String.valueOf( text.hashCode() ) ).orElse( "default" )
                     : "default";
             
-            return new TileLayer()
+            TileLayer result = new TileLayer()
                     .source.put( new TileWMSSource()
                             .url.put( "." + alias )
                             .params.put( new WMSRequestParams()
@@ -58,6 +71,9 @@ public class AtlasMapLayerProvider
                     // FIXME  init visibility of feature layer should be set elsewhere
                     // see AtlasMapContentProvider event handling
                     .visible.put( !featureLayer.isPresent() );
+            
+            createdLayers.put( layer.id(), result );
+            return result;
         }
         catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException( e );

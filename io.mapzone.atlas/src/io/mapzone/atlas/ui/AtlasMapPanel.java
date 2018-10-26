@@ -128,7 +128,7 @@ public class AtlasMapPanel
     protected Context<IMap>             map;
 
     /**
-     * Outbound: access to current map scale.
+     * Outbound: access to current map scale and layers.
      */
     @Scope( AtlasPlugin.Scope )
     protected Context<MapViewer<ILayer>> atlasMapViewer;
