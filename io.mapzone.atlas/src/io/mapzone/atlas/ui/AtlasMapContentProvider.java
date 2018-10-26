@@ -118,7 +118,6 @@ public class AtlasMapContentProvider
                 // background layer
                 else {
                     backgroundLayers.add( layer );
-                    // FIXME
                     if (!layer.userSettings.get().visible.get()) {
                         UIThreadExecutor.async( () -> 
                                 viewer.setVisible( layer, false ) );

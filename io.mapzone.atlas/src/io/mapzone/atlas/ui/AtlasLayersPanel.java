@@ -26,6 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.widgets.Composite;
+import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Slider;
 
 import org.eclipse.jface.viewers.CellLabelProvider;
@@ -57,6 +58,7 @@ import org.polymap.p4.P4Plugin;
 import org.polymap.p4.layer.FeatureLayer;
 import org.polymap.p4.layer.LayerInfoPanel;
 
+import io.mapzone.atlas.AtlasFeatureLayer;
 import io.mapzone.atlas.AtlasPlugin;
 import io.mapzone.atlas.Messages;
 
@@ -153,6 +155,33 @@ public class AtlasLayersPanel
             return ((ILayer)elm).userSettings.get().visible.get();
         }
 
+        
+        @Override
+        public void perform( MdListViewer viewer, Object elm ) {
+            boolean toBeUnselected = isSelected( elm );
+            if (toBeUnselected) {
+                boolean anyOtherVisible = map.get().layers.stream()
+                        .filter( l -> l != elm )
+                        .anyMatch( l -> AtlasFeatureLayer.of( l ).visible.get() );
+
+                if (!anyOtherVisible) {
+                    tk().createSimpleDialog( "Achtung" )
+                            .addOkAction( () -> true )
+                            .setContents( parent -> {
+                                parent.setLayout( FormLayoutFactory.defaults().create() );
+                                Label text = tk().createFlowText( parent, "Eine Ebene muss immer aktiv bleiben.\n\n"
+                                        + "Aktivieren Sie zuerst eine andere Ebene,\n"
+                                        + "um diese Ebene deaktivieren zu können." );
+                                FormDataFactory.on( text ).fill().width( 300 );
+                            })
+                            .open();
+                    return;
+                }
+            }
+            super.perform( viewer, elm );
+        }
+
+        
         @Override
         protected void onSelection( MdListViewer _viewer, Object elm, @SuppressWarnings( "hiding" ) boolean selected ) {
             ((ILayer)elm).userSettings.get().visible.set( selected );
