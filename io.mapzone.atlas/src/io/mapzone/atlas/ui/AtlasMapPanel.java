@@ -18,15 +18,19 @@ import static org.polymap.core.data.DataPlugin.ff;
 import static org.polymap.core.runtime.event.TypeEventFilter.isType;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
+import javax.servlet.http.Cookie;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.util.NullProgressListener;
 import org.opengis.feature.Feature;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,6 +43,8 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
 
 import org.eclipse.swt.widgets.Composite;
+
+import org.eclipse.rap.rwt.RWT;
 
 import org.polymap.core.data.PipelineFeatureSource;
 import org.polymap.core.data.util.Geometries;
@@ -108,6 +114,10 @@ public class AtlasMapPanel
     
     private static final IMessages      i18n = Messages.forPrefix( "AtlasMapPanel" );
     
+    public static final String          COOKIE_NAME = "mapzone_atlas";
+    public static final String          COOKIE_PATH = "/";
+    public static final int             COOKIE_MAX_AGE = (int)TimeUnit.DAYS.toSeconds( 300 );
+
     private static final double         SEARCH_RADIUS = 250d;
 
     /**
@@ -139,12 +149,26 @@ public class AtlasMapPanel
         // the 'start' panel initializes context
         map.compareAndSet( null, ProjectRepository.unitOfWork().entity( IMap.class, "root" ) );
         
-        // XXX fake user login; used by ProjectNodeUser for example
+        // Fake user login; used by ILayer#LayerUserSettings for example
         SecurityContext sc = SecurityContext.instance();
         if (!sc.isLoggedIn()) {
-            if (!sc.login( "admin", "admin" )) {
-                throw new RuntimeException( "Default/fake login did not succeed." );
-            }
+            Cookie usernameCookie = Arrays.stream( RWT.getRequest().getCookies() )
+                    .filter( cookie -> cookie.getName().equals( COOKIE_NAME ) ).findAny()
+                    .orElseGet( () -> {
+                        // XXX this produces more and more ILayer#LayerUserSettings; one for
+                        // each browser that accesses the Atlas; these db entries are never evicted
+                        String username = RandomStringUtils.randomAlphanumeric( 16 );
+                        Cookie cookie = new Cookie( COOKIE_NAME, username );
+                        cookie.setHttpOnly( true );
+                        cookie.setPath( COOKIE_PATH );
+                        cookie.setSecure( false ); // XXX
+                        cookie.setMaxAge( COOKIE_MAX_AGE );
+                        RWT.getResponse().addCookie( cookie );
+                        log.debug( "New cookie: " + cookie.getValue() + ", path=" + cookie.getPath() + ", maxAge=" + cookie.getMaxAge() );
+                        return cookie;
+                    });
+            log.debug( "Login: " + usernameCookie.getValue() );
+            sc.loginTrusted( usernameCookie.getValue() );
         }
         
         // listen to maxExtent changes

@@ -33,6 +33,7 @@ import org.polymap.core.project.ILayer;
 import org.polymap.core.project.ILayer.LayerUserSettings;
 import org.polymap.core.project.IMap;
 import org.polymap.core.project.ProjectNode.ProjectNodeCommittedEvent;
+import org.polymap.core.runtime.UIThreadExecutor;
 import org.polymap.core.runtime.config.Config;
 import org.polymap.core.runtime.event.EventHandler;
 import org.polymap.core.runtime.event.EventManager;
@@ -118,9 +119,10 @@ public class AtlasMapContentProvider
                 else {
                     backgroundLayers.add( layer );
                     // FIXME
-//                    if (layer.userSettings.get().visible.get()) {
-//                        viewer.setVisible( layer, false );
-//                    }
+                    if (!layer.userSettings.get().visible.get()) {
+                        UIThreadExecutor.async( () -> 
+                                viewer.setVisible( layer, false ) );
+                    }
                 };
             }
             catch (Exception e) { 
