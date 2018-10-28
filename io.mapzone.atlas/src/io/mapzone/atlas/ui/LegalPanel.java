@@ -14,12 +14,26 @@
  */
 package io.mapzone.atlas.ui;
 
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import org.eclipse.swt.SWT;
 import org.eclipse.swt.widgets.Composite;
+
+import org.eclipse.jface.layout.RowLayoutFactory;
+
 import org.polymap.core.runtime.i18n.IMessages;
+import org.polymap.core.ui.FormDataFactory;
+import org.polymap.core.ui.FormLayoutFactory;
+
 import org.polymap.rhei.batik.PanelIdentifier;
+import org.polymap.rhei.batik.toolkit.IPanelSection;
+
+import org.polymap.cms.ContentProvider;
+import org.polymap.cms.ContentProvider.ContentObject;
 import org.polymap.p4.P4Panel;
 import org.polymap.p4.P4Plugin;
 
@@ -56,7 +70,18 @@ public class LegalPanel
     @Override
     public void createContents( Composite parent ) {
         site().title.set( "Rechtliches" );
-        //parent.setLayout( FormLayoutFactory.defaults().margins( 3, 3, 17, 3 ).spacing( 8 ).create() );
+        parent.setLayout( RowLayoutFactory.fillDefaults().margins( 0, 8 ).spacing( 8 ).create() );
+        
+        AtomicBoolean isFirst = new AtomicBoolean( true );
+        for (ContentObject co : ContentProvider.instance().listContent( "/atlas/texte" )) {
+            String title = StringUtils.capitalize( co.title() );
+            IPanelSection section = tk().createPanelSection( parent, title, IPanelSection.EXPANDABLE, SWT.BORDER );
+            section.setExpanded( false ); //isFirst.getAndSet( false ) );
+            
+            section.getBody().setLayout( FormLayoutFactory.defaults().create() );
+            FormDataFactory.on( tk().createFlowText( section.getBody(), co.content() ) )
+                    .fill().width( parent.getSize().x-30 );
+        }
     }
 
 }
