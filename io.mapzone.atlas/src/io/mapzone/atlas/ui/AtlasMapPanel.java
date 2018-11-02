@@ -192,7 +192,7 @@ public class AtlasMapPanel
         
         if (mapViewer != null) {
             ((AtlasMapLayerProvider)mapViewer.layerProvider.get()).dispose();
-            ((AtlasMapContentProvider)mapViewer.layerProvider.get()).dispose();
+            ((AtlasMapContentProvider)mapViewer.contentProvider.get()).dispose();
             mapViewer.dispose();
         }
     }
