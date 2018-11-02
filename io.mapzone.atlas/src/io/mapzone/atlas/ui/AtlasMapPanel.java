@@ -189,6 +189,12 @@ public class AtlasMapPanel
         view.removeEventListener( View.Event.RESOLUTION, this );
         view.removeEventListener( View.Event.ROTATION, this );
         view.removeEventListener( View.Event.CENTER, this );
+        
+        if (mapViewer != null) {
+            ((AtlasMapLayerProvider)mapViewer.layerProvider.get()).dispose();
+            ((AtlasMapContentProvider)mapViewer.layerProvider.get()).dispose();
+            mapViewer.dispose();
+        }
     }
 
     
@@ -234,9 +240,10 @@ public class AtlasMapPanel
         // mapViewer
         try {
             atlasMapViewer.set( mapViewer = new MapViewer( parent ) );
-            // triggers {@link MapViewer#refresh()} on {@link ProjectNodeCommittedEvent} 
+            // provider triggers {@link MapViewer#refresh()} on {@link ProjectNodeCommittedEvent} 
             mapViewer.contentProvider.set( new AtlasMapContentProvider() );
-            mapViewer.layerProvider.set( new AtlasMapLayerProvider() );
+            // XXX provider registers an servlet for each and every instance/session
+            mapViewer.layerProvider.set( new AtlasMapLayerProvider( "/atlasmap" ) );
             
             ReferencedEnvelope maxExtent = map.get().maxExtent();
             log.info( "maxExtent: " + maxExtent );

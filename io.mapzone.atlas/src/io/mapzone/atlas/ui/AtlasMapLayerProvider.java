@@ -44,6 +44,11 @@ public class AtlasMapLayerProvider
     private Map<String,Layer>   createdLayers = new MapMaker().concurrencyLevel( 2 ).initialCapacity( 32 ).weakValues().makeMap();
     
     
+    public AtlasMapLayerProvider( String servletAlias ) {
+        super( servletAlias );
+    }
+
+
     public Layer findCreatedLayer( ILayer layer ) {
         return createdLayers.get( layer.id() );
     }
