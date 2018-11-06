@@ -164,10 +164,10 @@ public class AtlasMapPanel
                         cookie.setSecure( false ); // XXX
                         cookie.setMaxAge( COOKIE_MAX_AGE );
                         RWT.getResponse().addCookie( cookie );
-                        log.debug( "New cookie: " + cookie.getValue() + ", path=" + cookie.getPath() + ", maxAge=" + cookie.getMaxAge() );
+                        log.info( "New cookie: " + cookie.getValue() + ", path=" + cookie.getPath() + ", maxAge=" + cookie.getMaxAge() );
                         return cookie;
                     });
-            log.debug( "Login: " + usernameCookie.getValue() );
+            log.info( "Login: " + usernameCookie.getValue() );
             sc.loginTrusted( usernameCookie.getValue() );
         }
         

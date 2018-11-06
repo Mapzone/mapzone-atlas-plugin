@@ -75,9 +75,9 @@ public class AtlasPropertyChangeEvent
             AtlasPropertyChangeEvent ev = new AtlasPropertyChangeEvent( prop.info().getHostObject() );
             ev.prop.set( prop );
             ev.newValue.set( newValue );
-            log.info( "Publishing: " + prop.info().getName() + " => " + newValue );
+            log.debug( "Publishing: " + prop.info().getName() + " => " + newValue );
             EventManager.instance().publish( ev );
-            log.info( "Published: " + prop.info().getName() + " => " + newValue );
+            log.debug( "Published: " + prop.info().getName() + " => " + newValue );
             
             return newValue;
         }
