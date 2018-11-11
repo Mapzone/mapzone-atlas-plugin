@@ -59,7 +59,7 @@ public class AtlasFeatureLayer
     public static AtlasFeatureLayer of( ILayer layer ) {
         SessionHolder session = SessionHolder.instance( SessionHolder.class ); 
         return session.instances.computeIfAbsent( layer.id(), key -> {
-            log.info( "Creating AtlasFeatureLayer for: " + layer.label.get() );
+            log.debug( "Creating AtlasFeatureLayer for: " + layer.label.get() );
             return new AtlasFeatureLayer( layer );
         });
     }
