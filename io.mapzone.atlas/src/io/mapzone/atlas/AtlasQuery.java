@@ -36,7 +36,11 @@ import org.polymap.p4.layer.FeatureLayer;
 import io.mapzone.atlas.index.AtlasIndex;
 
 /**
- * There is just one instance per session, returned by {@link AtlasFeatureLayer#sessionQuery()}.
+ * The current query of an Atlas instance, consisting of a spatial query
+ * ({@link #mapExtent}) and a fulltext query ({@link #queryText}).
+ * <p/>
+ * There is just one instance per session, returned by
+ * {@link AtlasFeatureLayer#sessionQuery()}.
  *
  * @author Falko Bräutigam
  */
@@ -54,6 +58,9 @@ public class AtlasQuery
     public Config<ReferencedEnvelope>   mapExtent;
 
 
+    /**
+     * Builds the {@link Filter} for the {@link AtlasQueryFilterProcessor}. 
+     */
     public Filter build( ILayer layer, CoordinateReferenceSystem crs ) throws Exception {
         Filter extentFilter = extentFilterOf( crs );
         Filter textFilter = fulltextFilterOf( layer );

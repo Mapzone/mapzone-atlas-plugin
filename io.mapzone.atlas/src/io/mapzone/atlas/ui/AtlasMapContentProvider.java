@@ -75,7 +75,7 @@ public class AtlasMapContentProvider
         this.map = (IMap)newInput;
         this.viewer = (MapViewer)viewer;
         
-        // listen to AtlasFeatureLayer#visible
+        // listen to AtlasFeatureLayer#visible and AtlasQquery#queryText
         EventManager.instance().subscribe( this, isType( AtlasPropertyChangeEvent.class, ev -> {
             Config prop = ev.prop.get();
             return prop.equals( AtlasFeatureLayer.TYPE.visible )

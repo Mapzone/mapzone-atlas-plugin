@@ -14,6 +14,8 @@
  */
 package io.mapzone.atlas.index;
 
+import static org.polymap.core.data.DataPlugin.ff;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -43,7 +45,6 @@ import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
 
 import org.polymap.core.CorePlugin;
-import org.polymap.core.data.DataPlugin;
 import org.polymap.core.data.feature.storecache.StoreCacheProcessor;
 import org.polymap.core.project.ILayer;
 import org.polymap.core.project.IMap;
@@ -171,9 +172,9 @@ public class AtlasIndex {
         Filter filter = Filter.INCLUDE;
         if (!StringUtils.isBlank( query )) {
             Set<FeatureId> fids = FluentIterable.from( search( query, -1 ) )
-                    .transform( json -> DataPlugin.ff.featureId( json.getString( FulltextIndex.FIELD_ID ) ) )
+                    .transform( json -> ff.featureId( json.getString( FulltextIndex.FIELD_ID ) ) )
                     .toSet();
-            filter = !fids.isEmpty() ? DataPlugin.ff.id( fids ) : Filter.EXCLUDE;
+            filter = !fids.isEmpty() ? ff.id( fids ) : Filter.EXCLUDE;
         }
         return filter;
     }
@@ -182,6 +183,7 @@ public class AtlasIndex {
     protected List<JSONObject> search( String query, int maxResults ) {
         return cache.get( query, key -> {
             try {
+                log.info( "SEARCH: " + query );
                 Iterable<JSONObject> rs = index.search( query, maxResults );
                 return Lists.newArrayList( rs );
             }

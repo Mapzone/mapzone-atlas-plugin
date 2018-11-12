@@ -96,7 +96,8 @@ public class SearchContentProvider
         EventManager.instance().subscribe( this, ifType( AtlasPropertyChangeEvent.class, ev -> { 
             Config prop = ev.prop.get();
             // XXX don't listen to extent as long as transform does not work
-            return prop.equals( AtlasQuery.TYPE.queryText );
+            return prop.equals( AtlasQuery.TYPE.queryText )
+                    || prop.equals( AtlasQuery.TYPE.mapExtent );
         }));
     }
     
@@ -112,8 +113,9 @@ public class SearchContentProvider
         flush();
     }
 
-    @EventHandler( display=true, delay=100 )
+    @EventHandler( display=true, delay=1000 )
     public void onLayerQueryChange( List<AtlasPropertyChangeEvent> evs ) {
+        log.debug( "Refreshing viewer..." );
         // just refresh() does not always properly reflect structural changes
         viewer.setInput( input );  //refresh();
     }

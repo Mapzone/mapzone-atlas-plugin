@@ -58,11 +58,17 @@ public class AtlasMapLayerProvider
     protected Layer buildTiledLayer( String layerName, String styleHash ) {
         try {
             ILayer layer = layers.get( layerName );
+            
+            // let the TIME param of the WMS query identify the fulltext query;
+            // this allows Cache304 to cache tiles "per query"
             Optional<FeatureLayer> featureLayer = FeatureLayer.of( layer ).get();
-            AtlasQuery atlasQuery = AtlasFeatureLayer.sessionQuery();        
-            String queriedHash = featureLayer.isPresent()
-                    ? atlasQuery.queryText.map( text -> String.valueOf( text.hashCode() ) ).orElse( "default" )
-                    : "default";
+            String atlasQueryHash = "default";
+            if (featureLayer.isPresent()) {
+                AtlasQuery atlasQuery = AtlasFeatureLayer.sessionQuery();
+                atlasQueryHash = atlasQuery.queryText
+                        .map( text -> "#" + String.valueOf( text.hashCode() ) )
+                        .orElse( atlasQueryHash );
+            }
             
             TileLayer result = new TileLayer()
                     .source.put( new TileWMSSource()
@@ -71,7 +77,7 @@ public class AtlasMapLayerProvider
                                     .version.put( "1.1.1" )  // send "SRS" param
                                     .layers.put( layerName )
                                     .styles.put( styleHash )
-                                    .time.put( queriedHash )
+                                    .time.put( atlasQueryHash ) // allow Cache304
                                     .format.put( "image/png" ) ) )
                     // FIXME  init visibility of feature layer should be set elsewhere
                     // see AtlasMapContentProvider event handling
