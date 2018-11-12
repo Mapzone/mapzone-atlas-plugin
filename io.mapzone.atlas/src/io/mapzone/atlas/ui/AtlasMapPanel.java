@@ -218,8 +218,13 @@ public class AtlasMapPanel
             // check if event was send by us via onOlEvent()
             if (hovered == null || hovered.getLeft() != ev.clicked.get()) {
                 Coordinate centroid = transformedFeatureCentroid( ev.clicked.get() );
-                mapViewer.map().view.get().center.set( centroid );
                 updateHoverLayer( centroid );
+                
+                // do not pane and keep map stable; 
+                // SearchPanel shows only visible entries, so it is (no longer) needed;
+                // avoid another pane event from the map, as this causes SearchPanel
+                // refresh (after the click on the list)
+                //mapViewer.map().view.get().center.set( centroid );
             }
         }
         else {

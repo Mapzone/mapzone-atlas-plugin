@@ -291,6 +291,7 @@ public class SearchContentProvider
                     return entry.getKey();
                 }
             }
+            // FIXME this happens on feature click in map (and then center)
             throw new IllegalArgumentException( "No parent for feature: " + elm );
         }
         else {
