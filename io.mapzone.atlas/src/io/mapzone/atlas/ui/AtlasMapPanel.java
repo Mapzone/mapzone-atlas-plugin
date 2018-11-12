@@ -277,8 +277,8 @@ public class AtlasMapPanel
             // XXX rough way to get mapExtent changes
             View view = mapViewer.map().view.get();
             view.addEventListener( View.Event.RESOLUTION, this, new View.ExtentEventPayload() );
-//            view.addEventListener( View.Event.ROTATION, this, new View.ExtentEventPayload() );
-//            view.addEventListener( View.Event.CENTER, this, new View.ExtentEventPayload() );
+            view.addEventListener( View.Event.ROTATION, this, new View.ExtentEventPayload() );
+            view.addEventListener( View.Event.CENTER, this, new View.ExtentEventPayload() );
         }
         catch (Exception e) {
             throw new RuntimeException( e );
