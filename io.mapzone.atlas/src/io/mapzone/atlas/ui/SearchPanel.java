@@ -31,6 +31,7 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
 import org.eclipse.swt.graphics.Image;
 import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Shell;
@@ -59,6 +60,7 @@ import org.polymap.rhei.batik.Mandatory;
 import org.polymap.rhei.batik.PanelIdentifier;
 import org.polymap.rhei.batik.Scope;
 import org.polymap.rhei.batik.app.SvgImageRegistryHelper;
+import org.polymap.rhei.batik.toolkit.ActionItem;
 import org.polymap.rhei.batik.toolkit.ActionText;
 import org.polymap.rhei.batik.toolkit.ClearTextAction;
 import org.polymap.rhei.batik.toolkit.SimpleDialog;
@@ -110,6 +112,8 @@ public class SearchPanel
     
     private SearchContentProvider   contentProvider;
 
+    private Button                  clearBtn;
+
     
     @Override
     public boolean beforeInit() {
@@ -141,28 +145,14 @@ public class SearchPanel
         site().title.set( "Suchen" );
         parent.setLayout( FormLayoutFactory.defaults().margins( 0, 10 ).spacing( 6 ).create() );
         
-//        TabFolder tabFolder = new TabFolder( parent, SWT.NONE );
-//        
-//        TabItem tab1 = new TabItem( tabFolder, SWT.NONE );
-//        tab1.setText( "tab1" );
-//        Composite tab1Parent = tk().createComposite( tabFolder );
-//        tab1.setControl( tab1Parent );
-//        tk().createLabel( tab1Parent, "Inside tab1" );
-//        
-//        TabItem tab2 = new TabItem( tabFolder, SWT.NONE );
-//        tab2.setText( "tab2" );
-//        Composite tab2Parent = tk().createComposite( tabFolder );
-//        tab2.setControl( tab2Parent );
-//        tk().createLabel( tab2Parent, "Inside tab2" );
-        
         // searchText
         searchText = tk().createActionText( parent, "" )
                 .performOnEnter.put( true )
                 .performDelayMillis.put( 1000 )
                 .textHint.put( "Suchen...");
-        new ClearTextAction( searchText )
+        ActionItem clearAction = new ClearTextAction( searchText )
                 .tooltip.put( "Suche zurücksetzen. Alle Objekte anzeigen." )
-                .icon.set( AtlasPlugin.images().svgImage( "close-box.svg", SvgImageRegistryHelper.NORMAL24 ) );
+                .icon.put( AtlasPlugin.images().svgImage( "close-box.svg", SvgImageRegistryHelper.NORMAL24 ) );
         new TextActionItem( searchText, Type.DEFAULT )
                 .action.put( ev -> doSearch() )
                 .tooltip.put( "Suchen in allen Einträgen." )
@@ -170,7 +160,14 @@ public class SearchPanel
         new FulltextProposal( AtlasIndex.instance().queryDecoratedIndex(), searchText.getText() )
                 .eventOnAccept.put( true );
         searchText.getText().setFont( UIUtils.bold( searchText.getText().getFont() ) );
+        searchText.getText().addModifyListener( ev -> updateEnabled() );
 
+        // clear button
+        clearBtn = tk().createButton( parent, null, SWT.PUSH );
+        clearBtn.setToolTipText( "Suche zurücksetzen. Alle Objekte anzeigen." );
+        clearBtn.setImage( AtlasPlugin.images().svgImage( "refresh.svg", SvgImageRegistryHelper.WHITE24 ) );
+        clearBtn.addSelectionListener( UIUtils.selectionListener( ev -> clearAction.action.get().accept( ev ) ) );
+                
         // list
         list = tk().createListViewer( parent, SWT.VIRTUAL, SWT.SINGLE, SWT.FULL_SELECTION );
         list.setContentProvider( contentProvider = new SearchContentProvider() );
@@ -195,10 +192,18 @@ public class SearchPanel
         view.addEventListener( View.Event.RESOLUTION, this, new View.ExtentEventPayload() );
 
         // layout
-        FormDataFactory.on( searchText.getControl() ).fill().height( 30 ).noBottom();
+        FormDataFactory.on( clearBtn ).top( 0 ).left( 100, -40 ).right( 100, -2 ).height( 34 );
+        FormDataFactory.on( searchText.getControl() ).fill().right( clearBtn ).height( 35 ).noBottom();
         FormDataFactory.on( list.getTree() ).fill().top( searchText.getControl() );
     }
 
+
+    protected void updateEnabled() {
+        // defer until doSearch() has completed
+        UIThreadExecutor.async( () ->
+                clearBtn.setEnabled( !StringUtils.isBlank( AtlasFeatureLayer.sessionQuery().queryText.get() ) ) );
+    }
+    
 
     @EventHandler( display=true, delay=2500 )
     protected void onOlEvent( List<OlEvent> evs ) {
@@ -437,7 +442,9 @@ public class SearchPanel
                 double mapWidth = atlasMapViewer.get().mapExtent.get().getWidth();
                 double imageWidth = atlasMapViewer.get().getControl().getSize().x;
                 new GlyphRenderer( (Feature)elm, style, 28, mapWidth / imageWidth ).start( image -> {
-                    cell.setImage( (Image)image );
+                    if (!cell.getControl().isDisposed()) {
+                        cell.setImage( (Image)image );
+                    }
                 });
             }
             else {
