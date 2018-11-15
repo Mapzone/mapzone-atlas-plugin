@@ -114,9 +114,9 @@ public class AtlasMapPanel
     
     private static final IMessages      i18n = Messages.forPrefix( "AtlasMapPanel" );
     
-    public static final String          COOKIE_NAME = "mapzone_atlas";
+    public static final String          COOKIE_NAME = "atlas_user";
     public static final String          COOKIE_PATH = "/";
-    public static final int             COOKIE_MAX_AGE = (int)TimeUnit.DAYS.toSeconds( 300 );
+    public static final int             COOKIE_MAX_AGE = (int)TimeUnit.DAYS.toSeconds( 365 );
 
     private static final double         SEARCH_RADIUS = 250d;
 
