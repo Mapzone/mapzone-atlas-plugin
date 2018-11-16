@@ -275,8 +275,8 @@ public class SearchPanel
                         if (shell.getSize().y < 200) {
                             Point size = text.computeSize( textWidth, SWT.DEFAULT );
                             text.setLayoutData( FormDataFactory.filled().height( size.y ).width( textWidth ).create() );
-                            shell.setSize( 388, 125 + size.y );
-                            shell.setLocation( shell.getLocation().x, shell.getLocation().y-100 );
+                            shell.setSize( shell.getSize().x, 125 + size.y );
+                            shell.setLocation( shell.getLocation().x, shell.getLocation().y-125 );
                         }
                     });
                 });
@@ -286,7 +286,7 @@ public class SearchPanel
             });
         
         new ScriptJob( f, LayerSheet.TITLE, t -> 
-                dialog.getShell().setText( StringUtils.abbreviate( t, 35 ) ) );
+                dialog.getShell().setText( StringUtils.abbreviate( t, 32 ) ) );
         dialog.setBlockOnOpen( false );
         dialog.open();
     }
