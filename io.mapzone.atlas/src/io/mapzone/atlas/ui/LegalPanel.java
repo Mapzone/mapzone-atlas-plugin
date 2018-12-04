@@ -14,8 +14,6 @@
  */
 package io.mapzone.atlas.ui;
 
-import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -72,11 +70,10 @@ public class LegalPanel
         site().title.set( "Rechtliches" );
         parent.setLayout( RowLayoutFactory.fillDefaults().margins( 0, 8 ).spacing( 8 ).create() );
         
-        AtomicBoolean isFirst = new AtomicBoolean( true );
         for (ContentObject co : ContentProvider.instance().listContent( "/atlas/texte" )) {
             String title = StringUtils.capitalize( co.title() );
             IPanelSection section = tk().createPanelSection( parent, title, IPanelSection.EXPANDABLE, SWT.BORDER );
-            section.setExpanded( false ); //isFirst.getAndSet( false ) );
+            section.setExpanded( false );
             
             section.getBody().setLayout( FormLayoutFactory.defaults().create() );
             FormDataFactory.on( tk().createFlowText( section.getBody(), co.content() ) )

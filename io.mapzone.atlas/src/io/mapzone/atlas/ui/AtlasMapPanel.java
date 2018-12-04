@@ -78,12 +78,12 @@ import org.polymap.rap.openlayers.control.MousePositionControl;
 import org.polymap.rap.openlayers.control.ScaleLineControl;
 import org.polymap.rap.openlayers.format.GeoJSONFormat;
 import org.polymap.rap.openlayers.geom.PointGeometry;
-import org.polymap.rap.openlayers.layer.Layer;
 import org.polymap.rap.openlayers.layer.VectorLayer;
 import org.polymap.rap.openlayers.source.VectorSource;
 import org.polymap.rap.openlayers.style.CircleStyle;
 import org.polymap.rap.openlayers.style.StrokeStyle;
 import org.polymap.rap.openlayers.style.Style;
+import org.polymap.rap.openlayers.style.StyleArray;
 import org.polymap.rap.openlayers.style.TextStyle;
 import org.polymap.rap.openlayers.types.Color;
 import org.polymap.rap.openlayers.types.Coordinate;
@@ -137,7 +137,7 @@ public class AtlasMapPanel
 
     private ReferencedEnvelope          currentExtent;
 
-    private Layer<VectorSource>         hoverLayer;
+    private VectorLayer                 hoverLayer;
 
     private Pair<Feature,ILayer>        hovered;
     
@@ -265,15 +265,32 @@ public class AtlasMapPanel
             mapViewer.mapExtent.set( maxExtent );
 
             // hover layer
+            final float circleRadius = 20;
+            final float circleWidth = 4;
             hoverLayer = new VectorLayer()
-                    .style.put( new Style()
-                            // PointGeometry
-                            .text.put( new TextStyle()
-                                    .text.put( "title" ) )
-                            .image.put( new CircleStyle( 16f )
-                                    .stroke.put( new StrokeStyle()
-                                            .color.put( new Color( 240, 0, 10 ) )
-                                            .width.put( 4f ) ) ) )
+                    .style.put( new StyleArray(
+                            // circle
+                            new Style()
+                                    .zIndex.put( 100f )
+                                    .text.put( new TextStyle().text.put( "title" ) )
+                                    .image.put( new CircleStyle( circleRadius )
+                                            .stroke.put( new StrokeStyle()
+                                                    .color.put( new Color( 230, 0, 50 ) )
+                                                    .width.put( circleWidth ) ) ),
+                            // halo1
+                            new Style()
+                                    .zIndex.put( 10f )
+                                    .image.put( new CircleStyle( circleRadius )
+                                            .stroke.put( new StrokeStyle()
+                                                    .color.put( new Color( 255, 255, 255, 0.8f ) )
+                                                    .width.put( circleWidth + 4 ) ) ),
+                            // halo2
+                            new Style()
+                                    .zIndex.put( 0f )
+                                    .image.put( new CircleStyle( circleRadius )
+                                            .stroke.put( new StrokeStyle()
+                                                    .color.put( new Color( 255, 255, 255, 0.4f ) )
+                                                    .width.put( circleWidth + 8 ) ) ) ) )
                     .source.put( new VectorSource().format.put( new GeoJSONFormat() ) );
             mapViewer.map().addLayer( hoverLayer );
             mapViewer.map().addEventListener( OlMap.Event.POINTERMOVE, this, new OlMap.PointerEventPayload() );
