@@ -60,6 +60,10 @@
             class="io.mapzone.atlas.ui.LegalPanel"
             id="io.mapzone.atlas.LegalPanel">
       </panel>
+      <panel
+            class="io.mapzone.atlas.ui.DocPanel"
+            id="io.mapzone.atlas.DocPanel">
+      </panel>
    </extension>
    <extension
          point="org.polymap.rhei.batik.panelFilters">
