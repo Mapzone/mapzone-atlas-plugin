@@ -28,6 +28,7 @@ import org.eclipse.jface.layout.RowLayoutFactory;
 import org.polymap.core.runtime.i18n.IMessages;
 import org.polymap.core.ui.FormDataFactory;
 import org.polymap.core.ui.FormLayoutFactory;
+import org.polymap.core.ui.UIUtils;
 
 import org.polymap.rhei.batik.PanelIdentifier;
 import org.polymap.rhei.batik.toolkit.IPanelSection;
@@ -76,7 +77,14 @@ public class DocPanel
         for (ContentObject co : list) {
             String title = StringUtils.capitalize( co.title() );
             IPanelSection section = tk().createPanelSection( parent, title, IPanelSection.EXPANDABLE, SWT.BORDER );
-            section.setExpanded( list.size() == 1 );
+            section.setExpanded( false );
+
+            if (list.size() == 1) {
+                UIUtils.sessionDisplay().timerExec( 1000, () -> {
+                    section.setExpanded( true );
+                    site().layout( true );  // force update for scrollbars
+                });
+            }
             
             section.getBody().setLayout( FormLayoutFactory.defaults().create() );
             FormDataFactory.on( tk().createFlowText( section.getBody(), co.content() ) )

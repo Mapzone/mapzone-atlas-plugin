@@ -442,8 +442,11 @@ public class SearchPanel
                 double mapWidth = atlasMapViewer.get().mapExtent.get().getWidth();
                 double imageWidth = atlasMapViewer.get().getControl().getSize().x;
                 new GlyphRenderer( (Feature)elm, style, 28, mapWidth / imageWidth ).start( image -> {
-                    if (!cell.getControl().isDisposed()) {
+                    try {
                         cell.setImage( (Image)image );
+                    }
+                    catch (SWTException e) {
+                        log.warn( e.getLocalizedMessage() );
                     }
                 });
             }
