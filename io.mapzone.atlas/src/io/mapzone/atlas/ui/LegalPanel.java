@@ -14,6 +14,8 @@
  */
 package io.mapzone.atlas.ui;
 
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -70,10 +72,11 @@ public class LegalPanel
         site().title.set( "Rechtliches" );
         parent.setLayout( RowLayoutFactory.fillDefaults().margins( 0, 8 ).spacing( 8 ).create() );
         
-        for (ContentObject co : ContentProvider.instance().listContent( "/atlas/texte" )) {
+        List<ContentObject> list = ContentProvider.instance().listContent( "/atlas/texte" );
+        for (ContentObject co : list) {
             String title = StringUtils.capitalize( co.title() );
             IPanelSection section = tk().createPanelSection( parent, title, IPanelSection.EXPANDABLE, SWT.BORDER );
-            section.setExpanded( false );
+            section.setExpanded( list.size() == 1 );
             
             section.getBody().setLayout( FormLayoutFactory.defaults().create() );
             FormDataFactory.on( tk().createFlowText( section.getBody(), co.content() ) )
